@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils"
 import type { ClipData } from "@/types/library"
 import type { PlayData } from "@/lib/mock-datasets"
 import { TeamsBrowser } from "@/components/teams-browser"
+import { TeamsFiltersModule, type TeamsFilterState } from "@/components/teams-filters-module"
+import type { League } from "@/lib/sports-data"
 
 const exploreTabs = [
   { value: "clips", label: "Clips" },
@@ -100,6 +102,42 @@ export default function ExplorePage() {
   const [showFilters, setShowFilters] = useState(true)
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
+  
+  // Teams tab filter state
+  const [teamsFilters, setTeamsFilters] = useState<TeamsFilterState>({
+    leagues: new Set(),
+    conferences: new Set(),
+  })
+  
+  const toggleTeamsLeague = useCallback((league: League) => {
+    setTeamsFilters((prev) => {
+      const newLeagues = new Set(prev.leagues)
+      if (newLeagues.has(league)) {
+        newLeagues.delete(league)
+      } else {
+        newLeagues.add(league)
+      }
+      return { ...prev, leagues: newLeagues }
+    })
+  }, [])
+  
+  const toggleTeamsConference = useCallback((conferenceId: string) => {
+    setTeamsFilters((prev) => {
+      const newConferences = new Set(prev.conferences)
+      if (newConferences.has(conferenceId)) {
+        newConferences.delete(conferenceId)
+      } else {
+        newConferences.add(conferenceId)
+      }
+      return { ...prev, conferences: newConferences }
+    })
+  }, [])
+  
+  const clearTeamsFilters = useCallback(() => {
+    setTeamsFilters({ leagues: new Set(), conferences: new Set() })
+  }, [])
+  
+  const teamsFilterCount = teamsFilters.leagues.size + teamsFilters.conferences.size
 
   // Expand/collapse the preview panel when previewPlay changes
   // Mutual exclusion: opening preview closes filters, closing preview reopens filters
@@ -162,18 +200,28 @@ export default function ExplorePage() {
             onExpand={() => setShowFilters(true)}
           >
             <div className="h-full pl-3 py-3">
-              <FiltersModule
-                filters={filters}
-                rangeFilters={rangeFilters}
-                onToggle={toggleFilter}
-                onToggleAll={toggleAllInCategory}
-                onRangeChange={setRangeFilter}
-                onClear={clearFilters}
-                uniqueGames={uniqueGames}
-                activeFilterCount={activeFilterCount}
-                totalCount={allClipsDataset.plays.length}
-                filteredCount={filteredPlays.length}
-              />
+              {activeTab === "teams" ? (
+                <TeamsFiltersModule
+                  filters={teamsFilters}
+                  onToggleLeague={toggleTeamsLeague}
+                  onToggleConference={toggleTeamsConference}
+                  onClear={clearTeamsFilters}
+                  activeFilterCount={teamsFilterCount}
+                />
+              ) : (
+                <FiltersModule
+                  filters={filters}
+                  rangeFilters={rangeFilters}
+                  onToggle={toggleFilter}
+                  onToggleAll={toggleAllInCategory}
+                  onRangeChange={setRangeFilter}
+                  onClear={clearFilters}
+                  uniqueGames={uniqueGames}
+                  activeFilterCount={activeFilterCount}
+                  totalCount={allClipsDataset.plays.length}
+                  filteredCount={filteredPlays.length}
+                />
+              )}
             </div>
           </ResizablePanel>
           <ResizableHandle className="w-[8px] bg-transparent border-0 after:hidden before:hidden [&>div]:hidden" />
@@ -198,9 +246,9 @@ export default function ExplorePage() {
                       aria-label={showFilters ? "Hide filters" : "Show filters"}
                     >
                       <FilterToggleIcon className="w-4 h-4" />
-                      {!showFilters && activeFilterCount > 0 && (
+                      {!showFilters && (activeTab === "teams" ? teamsFilterCount : activeFilterCount) > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-semibold leading-none bg-blue-600 text-white rounded-full">
-                          {activeFilterCount}
+                          {activeTab === "teams" ? teamsFilterCount : activeFilterCount}
                         </span>
                       )}
                     </button>
@@ -262,7 +310,7 @@ export default function ExplorePage() {
                     </div>
                   ) : (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden">
-                      <TeamsBrowser />
+                      <TeamsBrowser filters={teamsFilters} />
                     </div>
                   )}
                 </div>

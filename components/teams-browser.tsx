@@ -1,14 +1,20 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { sportsData, type League, type Team, type Conference } from "@/lib/sports-data"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 
+interface TeamsFilterState {
+  leagues: Set<League>
+  conferences: Set<string>
+}
+
 interface TeamsBrowserProps {
   onSelectTeam?: (team: Team) => void
+  filters?: TeamsFilterState
 }
 
 // Get all teams from a conference, including subdivisions
@@ -27,20 +33,40 @@ function getConferenceTeamCount(conference: Conference): number {
   return getTeamsFromConference(conference).length
 }
 
-export function TeamsBrowser({ onSelectTeam }: TeamsBrowserProps) {
+export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
   const [activeLeague, setActiveLeague] = useState<League>("NFL")
   const [searchQuery, setSearchQuery] = useState("")
   const [hoveredTeam, setHoveredTeam] = useState<string | null>(null)
 
-  const leagues = Object.keys(sportsData) as League[]
+  const allLeagues = Object.keys(sportsData) as League[]
+  
+  // Filter visible leagues based on sidebar filter
+  const leagues = useMemo(() => {
+    if (!filters?.leagues || filters.leagues.size === 0) return allLeagues
+    return allLeagues.filter((league) => filters.leagues.has(league))
+  }, [allLeagues, filters?.leagues])
+  
+  // Switch to first available league if current is filtered out
+  useEffect(() => {
+    if (leagues.length > 0 && !leagues.includes(activeLeague)) {
+      setActiveLeague(leagues[0])
+    }
+  }, [leagues, activeLeague])
 
-  // Filter teams based on search query
+  // Filter teams based on search query and sidebar filters
   const filteredConferences = useMemo(() => {
     const data = sportsData[activeLeague]
-    if (!searchQuery.trim()) return data.conferences
+    
+    // First, filter by conference if any conference filters are active for this league
+    let conferencesToShow = data.conferences
+    if (filters?.conferences && filters.conferences.size > 0) {
+      conferencesToShow = data.conferences.filter((conf) => filters.conferences.has(conf.id))
+    }
+    
+    if (!searchQuery.trim()) return conferencesToShow
 
     const query = searchQuery.toLowerCase()
-    return data.conferences
+    return conferencesToShow
       .map((conference) => {
         // For NFL with subdivisions
         if (conference.subdivisions) {
@@ -71,19 +97,19 @@ export function TeamsBrowser({ onSelectTeam }: TeamsBrowserProps) {
           : null
       })
       .filter(Boolean) as Conference[]
-  }, [activeLeague, searchQuery])
+  }, [activeLeague, searchQuery, filters?.conferences])
 
   // Count total teams for each league
   const leagueCounts = useMemo(() => {
     const counts: Record<League, number> = {} as Record<League, number>
-    leagues.forEach((league) => {
+    allLeagues.forEach((league) => {
       counts[league] = sportsData[league].conferences.reduce(
         (sum, conf) => sum + getConferenceTeamCount(conf),
         0
       )
     })
     return counts
-  }, [leagues])
+  }, [allLeagues])
 
   const renderTeamCard = (team: Team) => (
     <button
