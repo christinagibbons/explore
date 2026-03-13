@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { PreviewModuleShell, type BreadcrumbItem } from "@/components/preview-module-shell"
 import type { Team, League } from "@/lib/sports-data"
 import type { Game } from "@/lib/games-data"
+import type { Athlete, Position } from "@/types/athlete"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,6 +19,7 @@ interface TeamPreviewModuleProps {
   onClose: () => void
   breadcrumbs?: BreadcrumbItem[]
   onNavigateToGame?: (game: Game) => void
+  onNavigateToAthlete?: (athlete: Athlete) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -124,25 +126,88 @@ function generateRecentGames(team: Team): RecentGameDisplay[] {
   return games
 }
 
-interface KeyPlayer {
-  name: string
-  position: string
-  number: number
+interface KeyPlayerDisplay {
+  athlete: Athlete
   stat: string
 }
 
-function generateKeyPlayers(team: Team): KeyPlayer[] {
+const PLAYER_DATA: Record<string, { firstName: string; lastName: string; college: string }> = {
+  "J. Smith": { firstName: "Jayden", lastName: "Smith", college: "Ohio State" },
+  "M. Johnson": { firstName: "Marcus", lastName: "Johnson", college: "Alabama" },
+  "T. Williams": { firstName: "Tyler", lastName: "Williams", college: "USC" },
+  "D. Brown": { firstName: "Derek", lastName: "Brown", college: "LSU" },
+  "C. Davis": { firstName: "Cameron", lastName: "Davis", college: "Michigan" },
+  "R. Harris": { firstName: "Rashad", lastName: "Harris", college: "Georgia" },
+  "K. Wilson": { firstName: "Kyler", lastName: "Wilson", college: "Texas" },
+  "A. Moore": { firstName: "Andre", lastName: "Moore", college: "Penn State" },
+  "J. Taylor": { firstName: "Jonathan", lastName: "Taylor", college: "Wisconsin" },
+  "N. Chubb": { firstName: "Nick", lastName: "Chubb", college: "Georgia" },
+  "T. Hill": { firstName: "Tyreek", lastName: "Hill", college: "West Alabama" },
+  "J. Chase": { firstName: "Ja'Marr", lastName: "Chase", college: "LSU" },
+  "D. Adams": { firstName: "Davante", lastName: "Adams", college: "Fresno State" },
+  "S. Diggs": { firstName: "Stefon", lastName: "Diggs", college: "Maryland" },
+  "A. Brown": { firstName: "Antonio", lastName: "Brown", college: "Central Michigan" },
+  "M. Garrett": { firstName: "Myles", lastName: "Garrett", college: "Texas A&M" },
+  "T. Watt": { firstName: "T.J.", lastName: "Watt", college: "Wisconsin" },
+  "N. Bosa": { firstName: "Nick", lastName: "Bosa", college: "Ohio State" },
+  "M. Crosby": { firstName: "Maxx", lastName: "Crosby", college: "Eastern Michigan" },
+  "C. Young": { firstName: "Chase", lastName: "Young", college: "Ohio State" },
+}
+
+function generateKeyPlayers(team: Team): KeyPlayerDisplay[] {
   const h = hashString(team.id)
   const qbNames = ["J. Smith", "M. Johnson", "T. Williams", "D. Brown", "C. Davis"]
   const rbNames = ["R. Harris", "K. Wilson", "A. Moore", "J. Taylor", "N. Chubb"]
   const wrNames = ["T. Hill", "J. Chase", "D. Adams", "S. Diggs", "A. Brown"]
   const deNames = ["M. Garrett", "T. Watt", "N. Bosa", "M. Crosby", "C. Young"]
   
+  const createAthlete = (shortName: string, position: Position, number: number, stats: Partial<Athlete["stats"]>): Athlete => {
+    const data = PLAYER_DATA[shortName] || { firstName: "John", lastName: "Doe", college: "Unknown" }
+    const fullName = `${data.firstName} ${data.lastName}`
+    return {
+      id: `${team.id}-${position.toLowerCase()}-${number}`,
+      name: fullName,
+      team: team.abbreviation,
+      position,
+      jersey_number: number,
+      height: position === "QB" ? "6'3" : position === "RB" ? "5'10" : position === "WR" ? "6'0" : "6'4",
+      weight: position === "QB" ? 215 : position === "RB" ? 205 : position === "WR" ? 190 : 265,
+      college: data.college,
+      stats: {
+        passing_yards: stats.passing_yards || 0,
+        passing_tds: stats.passing_tds || 0,
+        rushing_yards: stats.rushing_yards || 0,
+        rushing_tds: stats.rushing_tds || 0,
+        receiving_yards: stats.receiving_yards || 0,
+        receiving_tds: stats.receiving_tds || 0,
+        tackles: stats.tackles || 0,
+        sacks: stats.sacks || 0,
+      },
+    }
+  }
+  
+  const qbYards = 2800 + (h % 1500)
+  const rbYards = 800 + (h % 600)
+  const wrYards = 700 + (h % 500)
+  const sacks = 6 + (h % 10)
+  
   return [
-    { name: qbNames[h % qbNames.length], position: "QB", number: 1 + (h % 19), stat: `${2800 + (h % 1500)} YDS` },
-    { name: rbNames[(h + 1) % rbNames.length], position: "RB", number: 20 + (h % 15), stat: `${800 + (h % 600)} YDS` },
-    { name: wrNames[(h + 2) % wrNames.length], position: "WR", number: 10 + (h % 10), stat: `${700 + (h % 500)} YDS` },
-    { name: deNames[(h + 3) % deNames.length], position: "DE", number: 90 + (h % 9), stat: `${6 + (h % 10)} SACKS` },
+    { 
+      athlete: createAthlete(qbNames[h % qbNames.length], "QB", 1 + (h % 19), { passing_yards: qbYards, passing_tds: Math.floor(qbYards / 150) }),
+      stat: `${qbYards} YDS` 
+    },
+    { 
+      athlete: createAthlete(rbNames[(h + 1) % rbNames.length], "RB", 20 + (h % 15), { rushing_yards: rbYards, rushing_tds: Math.floor(rbYards / 100) }),
+      stat: `${rbYards} YDS` 
+    },
+    { 
+      athlete: createAthlete(wrNames[(h + 2) % wrNames.length], "WR", 10 + (h % 10), { receiving_yards: wrYards, receiving_tds: Math.floor(wrYards / 120) }),
+      stat: `${wrYards} YDS` 
+    },
+    { 
+      athlete: createAthlete(deNames[(h + 3) % deNames.length], "DE", 90 + (h % 9), { sacks, tackles: 30 + (h % 40) }),
+      stat: `${sacks} SACKS` 
+    },
   ]
 }
 
@@ -164,7 +229,7 @@ function StatCard({ label, value, subtext }: { label: string; value: string | nu
 // Team Preview Module
 // ---------------------------------------------------------------------------
 
-export function TeamPreviewModule({ team, league, onClose, breadcrumbs, onNavigateToGame }: TeamPreviewModuleProps) {
+export function TeamPreviewModule({ team, league, onClose, breadcrumbs, onNavigateToGame, onNavigateToAthlete }: TeamPreviewModuleProps) {
   const stats = useMemo(() => generateTeamStats(team), [team])
   const recentGames = useMemo(() => generateRecentGames(team), [team])
   const keyPlayers = useMemo(() => generateKeyPlayers(team), [team])
@@ -236,24 +301,33 @@ export function TeamPreviewModule({ team, league, onClose, breadcrumbs, onNaviga
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Key Players</h3>
             <div className="space-y-2">
               {keyPlayers.map((player, idx) => (
-                <div
+                <button
                   key={idx}
-                  className="flex items-center justify-between p-2 bg-muted/30 rounded-lg"
+                  onClick={() => onNavigateToAthlete?.(player.athlete)}
+                  className={cn(
+                    "flex items-center justify-between w-full p-2 rounded-lg transition-colors text-left",
+                    onNavigateToAthlete ? "hover:bg-[#0273e3]/10 cursor-pointer bg-muted/30" : "bg-muted/30"
+                  )}
                 >
                   <div className="flex items-center gap-2">
                     <div 
                       className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                       style={{ backgroundColor: team.logoColor }}
                     >
-                      {player.number}
+                      {player.athlete.jersey_number}
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">{player.name}</span>
-                      <span className="text-xs text-muted-foreground">{player.position}</span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-foreground">{player.athlete.name}</span>
+                      <span className="text-xs text-muted-foreground">{player.athlete.position}</span>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">{player.stat}</span>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{player.stat}</span>
+                    {onNavigateToAthlete && (
+                      <Icon name="chevronRight" className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
               ))}
             </div>
           </div>

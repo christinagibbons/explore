@@ -23,15 +23,18 @@ import { TeamPreviewModule } from "@/components/team-preview-module"
 import { GamesBrowser } from "@/components/games-browser"
 import { GamesFiltersModule } from "@/components/games-filters-module"
 import { GamePreviewModule } from "@/components/game-preview-module"
+import { AthletePreviewModule } from "@/components/athlete-preview-module"
 import type { GamesFilterState, Game } from "@/lib/games-data"
 import type { League, Team } from "@/lib/sports-data"
 import type { BreadcrumbItem } from "@/components/preview-module-shell"
+import type { Athlete } from "@/types/athlete"
 
 // Type for tracking preview navigation history
 type PreviewNavItem = 
   | { type: "clip"; play: PlayData; label: string }
   | { type: "team"; team: Team; league: League; label: string }
   | { type: "game"; game: Game; label: string }
+  | { type: "athlete"; athlete: Athlete; label: string }
 
 const exploreTabs = [
   { value: "clips", label: "Clips" },
@@ -103,6 +106,7 @@ export default function ExplorePage() {
   const [previewPlay, setPreviewPlay] = useState<PlayData | null>(null)
   const [previewTeam, setPreviewTeam] = useState<{ team: Team; league: League } | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
+  const [previewAthlete, setPreviewAthlete] = useState<Athlete | null>(null)
   const [previewNavStack, setPreviewNavStack] = useState<PreviewNavItem[]>([])
   const [showFilters, setShowFilters] = useState(true)
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
@@ -181,15 +185,16 @@ export default function ExplorePage() {
   
   const gamesFilterCount = gamesFilters.leagues.size + gamesFilters.seasons.size + gamesFilters.teams.size
 
-  // Expand/collapse the preview panel when previewPlay, previewTeam, or previewGame changes
+  // Expand/collapse the preview panel when any preview is active
   // Mutual exclusion: opening preview closes filters, closing preview reopens filters
-  const hasPreview = previewPlay || previewTeam || previewGame
+  const hasPreview = previewPlay || previewTeam || previewGame || previewAthlete
   
   // Unified preview handlers - only one preview can be open at a time
   // These clear the nav stack (fresh navigation)
   const openClipPreview = useCallback((play: PlayData) => {
     setPreviewTeam(null)
     setPreviewGame(null)
+    setPreviewAthlete(null)
     setPreviewNavStack([])
     setPreviewPlay(play)
   }, [])
@@ -197,6 +202,7 @@ export default function ExplorePage() {
   const openTeamPreview = useCallback((team: Team, league: League) => {
     setPreviewPlay(null)
     setPreviewGame(null)
+    setPreviewAthlete(null)
     setPreviewNavStack([])
     setPreviewTeam({ team, league })
   }, [])
@@ -204,55 +210,65 @@ export default function ExplorePage() {
   const openGamePreview = useCallback((game: Game) => {
     setPreviewPlay(null)
     setPreviewTeam(null)
+    setPreviewAthlete(null)
     setPreviewNavStack([])
     setPreviewGame(game)
   }, [])
   
   // Drill-down navigation handlers - these push to the nav stack
-  const drillDownToTeam = useCallback((team: Team, league: League, fromLabel: string) => {
-    // Push current preview to stack before navigating
+  const pushCurrentToStack = useCallback((fromLabel: string) => {
     if (previewPlay) {
       setPreviewNavStack(prev => [...prev, { type: "clip", play: previewPlay, label: fromLabel }])
     } else if (previewTeam) {
       setPreviewNavStack(prev => [...prev, { type: "team", team: previewTeam.team, league: previewTeam.league, label: fromLabel }])
     } else if (previewGame) {
       setPreviewNavStack(prev => [...prev, { type: "game", game: previewGame, label: fromLabel }])
+    } else if (previewAthlete) {
+      setPreviewNavStack(prev => [...prev, { type: "athlete", athlete: previewAthlete, label: fromLabel }])
     }
+  }, [previewPlay, previewTeam, previewGame, previewAthlete])
+
+  const drillDownToTeam = useCallback((team: Team, league: League, fromLabel: string) => {
+    pushCurrentToStack(fromLabel)
     setPreviewPlay(null)
     setPreviewGame(null)
+    setPreviewAthlete(null)
     setPreviewTeam({ team, league })
-  }, [previewPlay, previewTeam, previewGame])
+  }, [pushCurrentToStack])
   
   const drillDownToGame = useCallback((game: Game, fromLabel: string) => {
-    // Push current preview to stack before navigating
-    if (previewPlay) {
-      setPreviewNavStack(prev => [...prev, { type: "clip", play: previewPlay, label: fromLabel }])
-    } else if (previewTeam) {
-      setPreviewNavStack(prev => [...prev, { type: "team", team: previewTeam.team, league: previewTeam.league, label: fromLabel }])
-    } else if (previewGame) {
-      setPreviewNavStack(prev => [...prev, { type: "game", game: previewGame, label: fromLabel }])
-    }
+    pushCurrentToStack(fromLabel)
     setPreviewPlay(null)
     setPreviewTeam(null)
+    setPreviewAthlete(null)
     setPreviewGame(game)
-  }, [previewPlay, previewTeam, previewGame])
+  }, [pushCurrentToStack])
+  
+  const drillDownToAthlete = useCallback((athlete: Athlete, fromLabel: string) => {
+    pushCurrentToStack(fromLabel)
+    setPreviewPlay(null)
+    setPreviewTeam(null)
+    setPreviewGame(null)
+    setPreviewAthlete(athlete)
+  }, [pushCurrentToStack])
   
   // Navigate back to a specific breadcrumb
   const navigateToBreadcrumb = useCallback((index: number) => {
     const target = previewNavStack[index]
     // Restore the target preview and truncate the stack
+    setPreviewPlay(null)
+    setPreviewTeam(null)
+    setPreviewGame(null)
+    setPreviewAthlete(null)
+    
     if (target.type === "clip") {
-      setPreviewTeam(null)
-      setPreviewGame(null)
       setPreviewPlay(target.play)
     } else if (target.type === "team") {
-      setPreviewPlay(null)
-      setPreviewGame(null)
       setPreviewTeam({ team: target.team, league: target.league })
     } else if (target.type === "game") {
-      setPreviewPlay(null)
-      setPreviewTeam(null)
       setPreviewGame(target.game)
+    } else if (target.type === "athlete") {
+      setPreviewAthlete(target.athlete)
     }
     setPreviewNavStack(previewNavStack.slice(0, index))
   }, [previewNavStack])
@@ -283,6 +299,7 @@ export default function ExplorePage() {
         setPreviewPlay(null)
         setPreviewTeam(null)
         setPreviewGame(null)
+        setPreviewAthlete(null)
         setPreviewNavStack([])
       }
       return next
@@ -482,6 +499,7 @@ export default function ExplorePage() {
                       onClose={() => { setPreviewTeam(null); setPreviewNavStack([]) }}
                       breadcrumbs={breadcrumbs}
                       onNavigateToGame={(game) => drillDownToGame(game, previewTeam.team.name)}
+                      onNavigateToAthlete={(athlete) => drillDownToAthlete(athlete, previewTeam.team.name)}
                     />
                   )}
                   {previewGame && (
@@ -490,6 +508,14 @@ export default function ExplorePage() {
                       onClose={() => { setPreviewGame(null); setPreviewNavStack([]) }}
                       breadcrumbs={breadcrumbs}
                       onNavigateToTeam={(team, league) => drillDownToTeam(team, league, `${previewGame.awayTeam.abbreviation} @ ${previewGame.homeTeam.abbreviation}`)}
+                    />
+                  )}
+                  {previewAthlete && (
+                    <AthletePreviewModule
+                      athlete={previewAthlete}
+                      onClose={() => { setPreviewAthlete(null); setPreviewNavStack([]) }}
+                      breadcrumbs={breadcrumbs}
+                      onNavigateToTeam={(team, league) => drillDownToTeam(team, league, previewAthlete.name)}
                     />
                   )}
                 </div>
