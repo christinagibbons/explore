@@ -17,6 +17,7 @@ import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import type { ClipData } from "@/types/library"
 import type { PlayData } from "@/lib/mock-datasets"
+import { TeamsBrowser } from "@/components/teams-browser"
 
 const exploreTabs = [
   { value: "clips", label: "Clips" },
@@ -261,7 +262,7 @@ export default function ExplorePage() {
                     </div>
                   ) : (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden">
-                      <EmptyTabState label="Teams" />
+                      <TeamsBrowser />
                     </div>
                   )}
                 </div>
