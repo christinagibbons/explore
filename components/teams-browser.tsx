@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { sportsData, type League, type Team, type Conference } from "@/lib/sports-data"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -34,7 +34,6 @@ function getConferenceTeamCount(conference: Conference): number {
 }
 
 export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
-  const [activeLeague, setActiveLeague] = useState<League>("NFL")
   const [searchQuery, setSearchQuery] = useState("")
   const [hoveredTeam, setHoveredTeam] = useState<string | null>(null)
 
@@ -45,71 +44,70 @@ export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
     if (!filters?.leagues || filters.leagues.size === 0) return allLeagues
     return allLeagues.filter((league) => filters.leagues.has(league))
   }, [allLeagues, filters?.leagues])
-  
-  // Switch to first available league if current is filtered out
-  useEffect(() => {
-    if (leagues.length > 0 && !leagues.includes(activeLeague)) {
-      setActiveLeague(leagues[0])
-    }
-  }, [leagues, activeLeague])
 
-  // Filter teams based on search query and sidebar filters
-  const filteredConferences = useMemo(() => {
-    const data = sportsData[activeLeague]
+  // Build filtered data structure with all leagues
+  const filteredData = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim()
     
-    // First, filter by conference if any conference filters are active for this league
-    let conferencesToShow = data.conferences
-    if (filters?.conferences && filters.conferences.size > 0) {
-      conferencesToShow = data.conferences.filter((conf) => filters.conferences.has(conf.id))
-    }
-    
-    if (!searchQuery.trim()) return conferencesToShow
+    return leagues.map((league) => {
+      const data = sportsData[league]
+      
+      // Filter by conference if any conference filters are active
+      let conferencesToShow = data.conferences
+      if (filters?.conferences && filters.conferences.size > 0) {
+        conferencesToShow = data.conferences.filter((conf) => filters.conferences.has(conf.id))
+      }
+      
+      // Apply search filter
+      const filteredConferences = query
+        ? conferencesToShow
+            .map((conference) => {
+              if (conference.subdivisions) {
+                const filteredSubs = conference.subdivisions
+                  .map((sub) => ({
+                    ...sub,
+                    teams: sub.teams.filter(
+                      (team) =>
+                        team.name.toLowerCase().includes(query) ||
+                        team.abbreviation.toLowerCase().includes(query)
+                    ),
+                  }))
+                  .filter((sub) => sub.teams.length > 0)
 
-    const query = searchQuery.toLowerCase()
-    return conferencesToShow
-      .map((conference) => {
-        // For NFL with subdivisions
-        if (conference.subdivisions) {
-          const filteredSubs = conference.subdivisions
-            .map((sub) => ({
-              ...sub,
-              teams: sub.teams.filter(
+                return filteredSubs.length > 0
+                  ? { ...conference, subdivisions: filteredSubs, teams: [] }
+                  : null
+              }
+
+              const filteredTeams = conference.teams.filter(
                 (team) =>
                   team.name.toLowerCase().includes(query) ||
                   team.abbreviation.toLowerCase().includes(query)
-              ),
-            }))
-            .filter((sub) => sub.teams.length > 0)
-
-          return filteredSubs.length > 0
-            ? { ...conference, subdivisions: filteredSubs, teams: [] }
-            : null
-        }
-
-        // For conferences without subdivisions
-        const filteredTeams = conference.teams.filter(
-          (team) =>
-            team.name.toLowerCase().includes(query) ||
-            team.abbreviation.toLowerCase().includes(query)
-        )
-        return filteredTeams.length > 0
-          ? { ...conference, teams: filteredTeams }
-          : null
-      })
-      .filter(Boolean) as Conference[]
-  }, [activeLeague, searchQuery, filters?.conferences])
-
-  // Count total teams for each league
-  const leagueCounts = useMemo(() => {
-    const counts: Record<League, number> = {} as Record<League, number>
-    allLeagues.forEach((league) => {
-      counts[league] = sportsData[league].conferences.reduce(
+              )
+              return filteredTeams.length > 0
+                ? { ...conference, teams: filteredTeams }
+                : null
+            })
+            .filter(Boolean) as Conference[]
+        : conferencesToShow
+      
+      const teamCount = filteredConferences.reduce(
         (sum, conf) => sum + getConferenceTeamCount(conf),
         0
       )
-    })
-    return counts
-  }, [allLeagues])
+      
+      return {
+        league,
+        conferences: filteredConferences,
+        teamCount,
+      }
+    }).filter((d) => d.teamCount > 0)
+  }, [leagues, searchQuery, filters?.conferences])
+
+  // Count total teams across all visible leagues
+  const totalTeamCount = useMemo(() => {
+    return filteredData.reduce((sum, d) => sum + d.teamCount, 0)
+  }, [filteredData])
 
   const renderTeamCard = (team: Team) => (
     <button
@@ -139,81 +137,19 @@ export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
     </button>
   )
 
-  const renderConference = (conference: Conference) => {
-    // Handle NFL-style conferences with subdivisions (divisions)
-    if (conference.subdivisions && conference.subdivisions.length > 0) {
-      return (
-        <AccordionItem key={conference.id} value={conference.id} className="border-none">
-          <AccordionTrigger className="py-2 px-3 hover:no-underline hover:bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">{conference.name}</span>
-              <span className="text-xs text-muted-foreground">
-                ({getConferenceTeamCount(conference)} teams)
-              </span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pb-2">
-            <div className="space-y-3 pl-2">
-              {conference.subdivisions.map((division) => (
-                <div key={division.id}>
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 px-2">
-                    {division.name}
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                    {division.teams.map(renderTeamCard)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      )
-    }
-
-    // Handle flat conferences (college, high school)
-    return (
-      <AccordionItem key={conference.id} value={conference.id} className="border-none">
-        <AccordionTrigger className="py-2 px-3 hover:no-underline hover:bg-muted/50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{conference.name}</span>
-            <span className="text-xs text-muted-foreground">
-              ({conference.teams.length} teams)
-            </span>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="pb-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 pl-2">
-            {conference.teams.map(renderTeamCard)}
-          </div>
-        </AccordionContent>
-      </AccordionItem>
-    )
+  const getLeagueLabel = (league: League) => {
+    if (league === "NCAA (FBS)") return "College"
+    if (league === "High School") return "High School"
+    return league
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with league tabs and search */}
+      {/* Header with search */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border/50">
-        {/* League tabs */}
-        <div className="flex items-center gap-1">
-          {leagues.map((league) => (
-            <button
-              key={league}
-              onClick={() => {
-                setActiveLeague(league)
-                setSearchQuery("")
-              }}
-              className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                activeLeague === league
-                  ? "bg-[#0273e3] text-white"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              {league === "NCAA (FBS)" ? "College" : league === "High School" ? "HS" : league}
-              <span className="ml-1.5 text-xs opacity-70">({leagueCounts[league]})</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground">All Teams</span>
+          <span className="text-xs text-muted-foreground">({totalTeamCount})</span>
         </div>
 
         {/* Search */}
@@ -229,18 +165,70 @@ export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
         </div>
       </div>
 
-      {/* Teams list */}
+      {/* Teams list grouped by league */}
       <ScrollArea className="flex-1">
         <div className="p-4">
-          {filteredConferences.length === 0 ? (
+          {filteredData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Icon name="search" className="w-10 h-10 mb-3 opacity-40" />
-              <p className="text-sm">No teams found matching "{searchQuery}"</p>
+              <p className="text-sm">No teams found{searchQuery && ` matching "${searchQuery}"`}</p>
             </div>
           ) : (
-            <Accordion type="multiple" defaultValue={filteredConferences.map((c) => c.id)} className="space-y-1">
-              {filteredConferences.map(renderConference)}
-            </Accordion>
+            <div className="space-y-6">
+              {filteredData.map(({ league, conferences, teamCount }) => (
+                <div key={league}>
+                  {/* League header */}
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border/30">
+                    <h2 className="text-sm font-semibold text-foreground">{getLeagueLabel(league)}</h2>
+                    <span className="text-xs text-muted-foreground">({teamCount} teams)</span>
+                  </div>
+                  
+                  {/* Conferences within league */}
+                  <Accordion 
+                    type="multiple" 
+                    defaultValue={conferences.map((c) => `${league}-${c.id}`)} 
+                    className="space-y-1"
+                  >
+                    {conferences.map((conference) => (
+                      <AccordionItem 
+                        key={`${league}-${conference.id}`} 
+                        value={`${league}-${conference.id}`} 
+                        className="border-none"
+                      >
+                        <AccordionTrigger className="py-2 px-3 hover:no-underline hover:bg-muted/50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{conference.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({getConferenceTeamCount(conference)})
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-2">
+                          {conference.subdivisions && conference.subdivisions.length > 0 ? (
+                            <div className="space-y-3 pl-2">
+                              {conference.subdivisions.map((division) => (
+                                <div key={division.id}>
+                                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 px-2">
+                                    {division.name}
+                                  </h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                                    {division.teams.map(renderTeamCard)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 pl-2">
+                              {conference.teams.map(renderTeamCard)}
+                            </div>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -248,7 +236,7 @@ export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
       {/* Footer with total count */}
       <div className="px-4 py-2 border-t border-border/50 bg-muted/30">
         <p className="text-xs text-muted-foreground">
-          {leagueCounts[activeLeague]} teams in {activeLeague}
+          Showing {totalTeamCount} teams across {filteredData.length} league{filteredData.length !== 1 ? "s" : ""}
         </p>
       </div>
     </div>
