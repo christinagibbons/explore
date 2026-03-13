@@ -166,7 +166,7 @@ export function TeamsBrowser({ onSelectTeam, filters }: TeamsBrowserProps) {
       </div>
 
       {/* Teams list grouped by league */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden">
         <div className="p-4">
           {filteredData.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
