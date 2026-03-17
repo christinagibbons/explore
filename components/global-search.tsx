@@ -31,6 +31,9 @@ export function GlobalSearch() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div className="relative w-full">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <Icon name="search" className="w-4 h-4 text-muted-foreground" />
+          </div>
           <input
             type="text"
             placeholder="Search folders, files, or clips..."
@@ -43,15 +46,12 @@ export function GlobalSearch() {
               if (query.length > 0) setOpen(true)
             }}
             className={cn(
-              "w-full h-9 px-3 pr-10 text-sm rounded-md",
+              "w-full h-9 pl-9 pr-3 text-sm rounded-md",
               "bg-background border border-input",
               "placeholder:text-muted-foreground",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
             )}
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <Icon name="search" className="w-4 h-4 text-muted-foreground" />
-          </div>
         </div>
       </PopoverTrigger>
       
