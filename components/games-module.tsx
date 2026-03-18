@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react"
 import { mockGames, mockClips, findTeamById as getTeamById } from "@/lib/games-context"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Search } from "lucide-react"
 import type { Game, GameLeague } from "@/types/game"
@@ -171,7 +170,8 @@ function LeagueSection({ league, games }: { league: GameLeague; games: Game[] })
       <div className="space-y-2">
         {games.map((game) => (
           <GameTile key={game.id} game={game} />
-        ))}
+))}
+        </div>
       </div>
     </div>
   )
@@ -271,9 +271,9 @@ export function GamesModule({
   )
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header with count and search */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground">All Games</span>
           <span className="text-sm text-muted-foreground">({totalGames})</span>
@@ -291,7 +291,7 @@ export function GamesModule({
       </div>
 
       {/* Games List */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 space-y-6">
           {organizedGames.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
