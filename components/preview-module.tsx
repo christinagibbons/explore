@@ -678,10 +678,11 @@ const TEAM_FULL_NAMES: Record<string, string> = {
   TB: "Tampa Bay Buccaneers",
 }
 
-function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () => void }) {
+function AthleteProfileView({ athlete, onBack, onNavigateToTeam }: { athlete: Athlete; onBack: () => void; onNavigateToTeam?: (team: Team) => void }) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
+  const athleteTeam = useMemo(() => findTeamById(athlete.team), [athlete.team])
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
@@ -707,7 +708,16 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
-              <span className="text-primary font-medium">{teamName}</span>
+              {athleteTeam && onNavigateToTeam ? (
+                <button
+                  onClick={() => onNavigateToTeam(athleteTeam)}
+                  className="text-primary font-medium hover:underline cursor-pointer"
+                >
+                  {teamName}
+                </button>
+              ) : (
+                <span className="text-primary font-medium">{teamName}</span>
+              )}
               <span className="text-border">{"·"}</span>
               <span>{athlete.position}</span>
               <span className="text-border">{"·"}</span>
@@ -743,7 +753,12 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
               <IdentityRow label="Position" value={athlete.position} />
               <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
               <IdentityRow label="College" value={athlete.college} />
-              <IdentityRow label="Team" value={teamName} isLast />
+              <IdentityRow 
+                label="Team" 
+                value={teamName} 
+                isLast 
+                onClick={athleteTeam && onNavigateToTeam ? () => onNavigateToTeam(athleteTeam) : undefined}
+              />
             </div>
 
             {/* Key Stats */}
@@ -782,14 +797,20 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
   )
 }
 
-function IdentityRow({ label, value, isLast }: { label: string; value: string; isLast?: boolean }) {
+function IdentityRow({ label, value, isLast, onClick }: { label: string; value: string; isLast?: boolean; onClick?: () => void }) {
   return (
-    <div className={cn("flex items-center justify-between py-3", !isLast && "border-b border-dotted border-border")}>
-      <span className="text-sm font-bold text-foreground">{label}</span>
-      <span className="text-sm text-muted-foreground">{value}</span>
-    </div>
+  <div className={cn("flex items-center justify-between py-3", !isLast && "border-b border-dotted border-border")}>
+  <span className="text-sm font-bold text-foreground">{label}</span>
+  {onClick ? (
+    <button onClick={onClick} className="text-sm text-primary font-medium hover:underline cursor-pointer">
+      {value}
+    </button>
+  ) : (
+    <span className="text-sm text-muted-foreground">{value}</span>
+  )}
+  </div>
   )
-}
+  }
 
 // ---------------------------------------------------------------------------
 // Convert PlayData to ClipData
@@ -2034,68 +2055,73 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: Athl
             {/* Identity section */}
             <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
             <div className="flex flex-col">
-              <IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
-              <IdentityRow label="Position" value={athlete.position} />
-              <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
-              <IdentityRow label="College" value={athlete.college} />
-              <IdentityRow label="Team" value={teamName} isLast />
-            </div>
+<IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
+  <IdentityRow label="Position" value={athlete.position} />
+  <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
+  <IdentityRow label="College" value={athlete.college} />
+  <IdentityRow 
+    label="Team" 
+    value={teamName} 
+    isLast 
+    onClick={athleteTeam && onNavigateToTeam ? () => onNavigateToTeam(athleteTeam) : undefined}
+  />
+  </div>
+  
+  {/* Key Stats */}
+  <div className="mt-8">
+  <div className="flex items-center justify-between mb-4">
+  <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
+  <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
+  2025/26
+  </span>
+  </div>
+  <div className="grid grid-cols-2 gap-3">
+  {keyStats.map((stat) => (
+  <div key={stat.label} className="rounded-lg border border-border p-3">
+  <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
+  <div className="flex items-baseline gap-1">
+  <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
+  {stat.secondary && (
+  <span className="text-xs text-muted-foreground">{stat.secondary}</span>
+  )}
+  </div>
+  {stat.note && (
+  <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
+  )}
+  </div>
+  ))}
+  </div>
+  </div>
+  </div>
+  ) : (
+  <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+  {profileTab} content coming soon.
+  </div>
+  )}
+  </div>
 
-            {/* Key Stats */}
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
-                <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
-                  2025/26
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {keyStats.map((stat) => (
-                  <div key={stat.label} className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
-                      {stat.secondary && (
-                        <span className="text-xs text-muted-foreground">{stat.secondary}</span>
-                      )}
-                    </div>
-                    {stat.note && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-            {profileTab} content coming soon.
-          </div>
-        )}
-      </div>
-
-      {/* Fixed Footer */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
-        <Button
-          variant="outline"
-          className="flex-1 font-semibold"
-          onClick={() => {
-            // Placeholder for viewing athlete highlights
-            console.log("View highlights:", athlete.name)
-          }}
-        >
-          View Highlights
-        </Button>
-        <Button
-          className="flex-1 font-semibold"
-          onClick={() => router.push(`/athletes/${athleteSlug}`)}
-        >
-          View Full Profile
-        </Button>
-      </div>
-    </div>
+  {/* Fixed Footer */}
+  <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+  <Button
+  variant="outline"
+  className="flex-1 font-semibold"
+  onClick={() => {
+  // Placeholder for viewing athlete highlights
+  console.log("View highlights:", athlete.name)
+  }}
+  >
+  View Highlights
+  </Button>
+  <Button
+  className="flex-1 font-semibold"
+  onClick={() => router.push(`/athletes/${athleteSlug}`)}
+  >
+  View Full Profile
+  </Button>
+  </div>
+  </div>
   )
-}
+  }
 
 // ---------------------------------------------------------------------------
 // PreviewModule
@@ -2213,9 +2239,9 @@ export function PreviewModule({
     router.push("/watch")
   }, [setWatchItem, router])
 
-  // If an athlete is selected, show their profile instead of the clip view
+// If an athlete is selected, show their profile instead of the clip view
   if (selectedAthlete) {
-    return <AthleteProfileView athlete={selectedAthlete} onBack={() => setSelectedAthlete(null)} />
+  return <AthleteProfileView athlete={selectedAthlete} onBack={() => setSelectedAthlete(null)} onNavigateToTeam={onNavigateToTeam} />
   }
 
   return (
