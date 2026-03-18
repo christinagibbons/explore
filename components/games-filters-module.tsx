@@ -1,12 +1,14 @@
 "use client"
 
 import { useMemo } from "react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import { mockGames } from "@/lib/mock-games"
 import type { GameLeague } from "@/types/game"
+import { FilterRow } from "@/components/filters/filter-row"
+import { ToggleButton } from "@/components/filters/toggle-button"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,43 +20,6 @@ interface GamesFiltersModuleProps {
   onLeagueToggle: (league: GameLeague) => void
   onSeasonChange: (season: string | null) => void
   onClear: () => void
-}
-
-// ---------------------------------------------------------------------------
-// League chip button
-// ---------------------------------------------------------------------------
-function LeagueChip({
-  league,
-  label,
-  isSelected,
-  count,
-  onClick,
-}: {
-  league: GameLeague
-  label: string
-  isSelected: boolean
-  count: number
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 flex items-center gap-1.5",
-        isSelected
-          ? "bg-foreground text-background shadow-sm"
-          : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-      )}
-    >
-      {label}
-      <span className={cn(
-        "text-xs",
-        isSelected ? "opacity-70" : "opacity-50"
-      )}>
-        ({count})
-      </span>
-    </button>
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +60,29 @@ export function GamesFiltersModule({
     { league: "HighSchool", label: "High School" },
   ]
 
+  // Check if all leagues are selected (for the FilterRow circle)
+  const allLeaguesSelected = leagues.every(({ league }) => selectedLeagues.includes(league))
+  const hasLeagueSelected = selectedLeagues.length > 0
+
+  // Toggle all leagues at once
+  const handleToggleAllLeagues = () => {
+    if (hasLeagueSelected) {
+      // Clear all leagues
+      leagues.forEach(({ league }) => {
+        if (selectedLeagues.includes(league)) {
+          onLeagueToggle(league)
+        }
+      })
+    } else {
+      // Select all leagues
+      leagues.forEach(({ league }) => {
+        if (!selectedLeagues.includes(league)) {
+          onLeagueToggle(league)
+        }
+      })
+    }
+  }
+
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
       {/* Header */}
@@ -119,47 +107,78 @@ export function GamesFiltersModule({
         )}
       </div>
 
-      {/* Filter Sections */}
+      {/* Filter Sections — using Accordion like FiltersModule */}
       <ScrollArea className="flex-1 overflow-hidden">
-        <div className="px-4 py-4 space-y-6">
-          {/* Season Dropdown */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Season</label>
-            <Select
-              value={selectedSeason || "all"}
-              onValueChange={(value) => onSeasonChange(value === "all" ? null : value)}
-            >
-              <SelectTrigger className="w-full h-9 text-sm border-border">
-                <SelectValue placeholder="All Seasons" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Seasons</SelectItem>
-                {seasons.map((season) => (
-                  <SelectItem key={season} value={season}>
-                    {season} Season
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <Accordion
+          type="multiple"
+          defaultValue={["season", "league"]}
+          className="px-4"
+        >
+          {/* Season Section */}
+          <AccordionItem value="season" className="border-b border-border">
+            <AccordionTrigger className="py-3 hover:no-underline text-sm font-semibold text-foreground [&>svg]:text-muted-foreground">
+              Season
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-3">
+              <div className="space-y-2">
+                <Select
+                  value={selectedSeason || "all"}
+                  onValueChange={(value) => onSeasonChange(value === "all" ? null : value)}
+                >
+                  <SelectTrigger className="w-full h-9 text-sm border-border text-muted-foreground">
+                    <SelectValue placeholder="All Seasons" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Seasons</SelectItem>
+                    {seasons.map((season) => (
+                      <SelectItem key={season} value={season}>
+                        {season} Season
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-          {/* League Chips */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">League</label>
-            <div className="flex flex-wrap gap-2">
-              {leagues.map(({ league, label }) => (
-                <LeagueChip
-                  key={league}
-                  league={league}
-                  label={label}
-                  isSelected={selectedLeagues.includes(league)}
-                  count={leagueCounts[league]}
-                  onClick={() => onLeagueToggle(league)}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+          {/* League Section */}
+          <AccordionItem value="league" className="border-b-0">
+            <AccordionTrigger className="py-3 hover:no-underline text-sm font-semibold text-foreground [&>svg]:text-muted-foreground">
+              League
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleToggleAllLeagues}
+                      className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                        hasLeagueSelected
+                          ? "border-blue-600 bg-blue-600"
+                          : "border-muted-foreground/40 bg-background hover:border-muted-foreground/60"
+                      }`}
+                    >
+                      {hasLeagueSelected && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-background" />
+                      )}
+                    </button>
+                    <span className="text-sm text-foreground">League</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {leagues.map(({ league, label }) => (
+                    <ToggleButton
+                      key={league}
+                      label={`${label} (${leagueCounts[league]})`}
+                      isSelected={selectedLeagues.includes(league)}
+                      onClick={() => onLeagueToggle(league)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </ScrollArea>
     </div>
   )
