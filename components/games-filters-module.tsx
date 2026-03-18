@@ -121,6 +121,23 @@ export function GamesFiltersModule({
             </AccordionTrigger>
             <AccordionContent className="pb-4 space-y-3">
               <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onSeasonChange(null)}
+                      className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                        selectedSeason
+                          ? "border-blue-600 bg-blue-600"
+                          : "border-muted-foreground/40 bg-background hover:border-muted-foreground/60"
+                      }`}
+                    >
+                      {selectedSeason && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-background" />
+                      )}
+                    </button>
+                    <span className="text-sm text-foreground">Season</span>
+                  </div>
+                </div>
                 <Select
                   value={selectedSeason || "all"}
                   onValueChange={(value) => onSeasonChange(value === "all" ? null : value)}
