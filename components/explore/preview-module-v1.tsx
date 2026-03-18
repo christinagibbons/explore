@@ -118,12 +118,13 @@ function getItemIcon(type: PreviewItemType): string {
 
 interface BreadcrumbHeaderProps {
   items: BreadcrumbItem[]
+  canGoBack: boolean
   onNavigate: (index: number) => void
   onBack: () => void
   onClose: () => void
 }
 
-function BreadcrumbHeader({ items, onNavigate, onBack, onClose }: BreadcrumbHeaderProps) {
+function BreadcrumbHeader({ items, canGoBack, onNavigate, onBack, onClose }: BreadcrumbHeaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isTruncated, setIsTruncated] = useState(false)
   
@@ -145,6 +146,7 @@ function BreadcrumbHeader({ items, onNavigate, onBack, onClose }: BreadcrumbHead
   }, [items])
 
   const hasBreadcrumbs = items.length > 1
+  const showBackButton = canGoBack
   const currentItem = items[items.length - 1]
 
   // Full breadcrumb trail for tooltip
@@ -154,8 +156,8 @@ function BreadcrumbHeader({ items, onNavigate, onBack, onClose }: BreadcrumbHead
     <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0 gap-2">
       {/* Left side: Back button + Breadcrumbs */}
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        {/* Back button - only show when we have history */}
-        {hasBreadcrumbs && (
+        {/* Back button - show when we have navigation history */}
+        {showBackButton && (
           <Button
             variant="ghost"
             size="icon-sm"
@@ -276,9 +278,18 @@ export function PreviewModuleV1({
   athlete, 
   onClose,
 }: PreviewModuleV1Props) {
-  // Breadcrumb stack - tracks navigation history
+  // Breadcrumb stack - tracks hierarchical navigation for display
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>(() => {
     // Initialize with the current item
+    if (game) return [{ type: "game", label: game.name || "Game", data: game }]
+    if (team) return [{ type: "team", label: team.name || "Team", data: team }]
+    if (athlete) return [{ type: "athlete", label: athlete.name || "Athlete", data: athlete }]
+    if (play) return [{ type: "clip", label: `Clip ${play.playNumber}`, data: play }]
+    return []
+  })
+
+  // Navigation history - tracks ALL navigation for back button (independent of breadcrumb hierarchy)
+  const [navHistory, setNavHistory] = useState<BreadcrumbItem[]>(() => {
     if (game) return [{ type: "game", label: game.name || "Game", data: game }]
     if (team) return [{ type: "team", label: team.name || "Team", data: team }]
     if (athlete) return [{ type: "athlete", label: athlete.name || "Athlete", data: athlete }]
@@ -307,47 +318,77 @@ export function PreviewModuleV1({
     return null
   }, [game, team, athlete, play])
 
-  // When root item changes, reset the breadcrumb stack
+  // When root item changes, reset both breadcrumb stack and navigation history
   useMemo(() => {
     if (game) {
-      setBreadcrumbs([{ type: "game", label: game.name || "Game", data: game }])
+      const item = { type: "game" as PreviewItemType, label: game.name || "Game", data: game }
+      setBreadcrumbs([item])
+      setNavHistory([item])
       setCurrentPreview({ type: "game", data: game })
     } else if (team) {
-      setBreadcrumbs([{ type: "team", label: team.name || "Team", data: team }])
+      const item = { type: "team" as PreviewItemType, label: team.name || "Team", data: team }
+      setBreadcrumbs([item])
+      setNavHistory([item])
       setCurrentPreview({ type: "team", data: team })
     } else if (athlete) {
-      setBreadcrumbs([{ type: "athlete", label: athlete.name || "Athlete", data: athlete }])
+      const item = { type: "athlete" as PreviewItemType, label: athlete.name || "Athlete", data: athlete }
+      setBreadcrumbs([item])
+      setNavHistory([item])
       setCurrentPreview({ type: "athlete", data: athlete })
     } else if (play) {
-      setBreadcrumbs([{ type: "clip", label: `Clip ${play.playNumber}`, data: play }])
+      const item = { type: "clip" as PreviewItemType, label: `Clip ${play.playNumber}`, data: play }
+      setBreadcrumbs([item])
+      setNavHistory([item])
       setCurrentPreview({ type: "clip", data: play })
     }
   }, [rootItemKey])
 
   // Navigate to a new item (drill down)
   const navigateTo = useCallback((type: PreviewItemType, data: PlayData | Game | Team | (Athlete & { id?: string }), label: string) => {
+    const newItem = { type, label, data }
     const currentType = currentPreview?.type
+    
+    // Always add to navigation history (for back button)
+    setNavHistory(prev => [...prev, newItem])
+    
     if (currentType && !isValidNavigation(currentType, type)) {
       // Invalid navigation - reset breadcrumbs to just the new item
-      setBreadcrumbs([{ type, label, data }])
+      setBreadcrumbs([newItem])
     } else {
       // Valid navigation - add to breadcrumb trail
-      setBreadcrumbs(prev => [...prev, { type, label, data }])
+      setBreadcrumbs(prev => [...prev, newItem])
     }
     setCurrentPreview({ type, data })
   }, [currentPreview])
 
-  // Navigate back one step
+  // Navigate back one step (using navigation history, not breadcrumbs)
   const handleBack = useCallback(() => {
-    if (breadcrumbs.length <= 1) {
+    if (navHistory.length <= 1) {
       onClose()
       return
     }
-    const newBreadcrumbs = breadcrumbs.slice(0, -1)
-    const lastItem = newBreadcrumbs[newBreadcrumbs.length - 1]
-    setBreadcrumbs(newBreadcrumbs)
-    setCurrentPreview({ type: lastItem.type, data: lastItem.data })
-  }, [breadcrumbs, onClose])
+    
+    // Pop the current item from nav history
+    const newNavHistory = navHistory.slice(0, -1)
+    const previousItem = newNavHistory[newNavHistory.length - 1]
+    setNavHistory(newNavHistory)
+    
+    // Rebuild breadcrumbs based on where we're going back to
+    // Find if the previous item exists in current breadcrumbs
+    const prevItemIndex = breadcrumbs.findIndex(
+      b => b.type === previousItem.type && b.data === previousItem.data
+    )
+    
+    if (prevItemIndex >= 0) {
+      // Item is in breadcrumbs - truncate to that point
+      setBreadcrumbs(breadcrumbs.slice(0, prevItemIndex + 1))
+    } else {
+      // Item is not in breadcrumbs (was a hierarchy jump) - set breadcrumbs to just this item
+      setBreadcrumbs([previousItem])
+    }
+    
+    setCurrentPreview({ type: previousItem.type, data: previousItem.data })
+  }, [navHistory, breadcrumbs, onClose])
 
   // Navigate to a specific breadcrumb index
   const handleBreadcrumbClick = useCallback((index: number) => {
@@ -355,6 +396,8 @@ export function PreviewModuleV1({
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1)
     const targetItem = newBreadcrumbs[index]
     setBreadcrumbs(newBreadcrumbs)
+    // Add the clicked item to nav history (so back button works correctly)
+    setNavHistory(prev => [...prev, targetItem])
     setCurrentPreview({ type: targetItem.type, data: targetItem.data })
   }, [breadcrumbs])
 
@@ -428,6 +471,7 @@ export function PreviewModuleV1({
       {/* Integrated Breadcrumb Header */}
       <BreadcrumbHeader
         items={breadcrumbs}
+        canGoBack={navHistory.length > 1}
         onNavigate={handleBreadcrumbClick}
         onBack={handleBack}
         onClose={onClose}
