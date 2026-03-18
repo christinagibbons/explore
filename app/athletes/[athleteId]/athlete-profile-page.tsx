@@ -152,7 +152,7 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   const teamInfo = useMemo(() => getTeamForAthlete(athlete.id), [athlete.id])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-full overflow-y-auto bg-background">
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4">
