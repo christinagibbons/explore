@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Icon } from "@/components/icon"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { athletes } from "@/lib/athletes-data"
 import type { Athlete } from "@/types/athlete"
@@ -114,32 +116,27 @@ export function AthletesModule({
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Search bar */}
-      <div className="px-3 py-2 border-b border-border/50">
-        <div className="relative">
-          <Icon
-            name="search"
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
-          />
-          <input
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header with count and search */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">All Athletes</span>
+          <span className="text-sm text-muted-foreground">({athletes.length})</span>
+        </div>
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
             type="text"
             placeholder="Search athletes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border/50 rounded-lg placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="pl-9 h-9 bg-muted/50 border-border/50 text-sm"
           />
         </div>
       </div>
 
-      {/* Athletes count */}
-      <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border/50">
-        {filteredAthletes.length} athlete{filteredAthletes.length !== 1 ? "s" : ""}
-        {selectedLeagues.length > 0 && ` in ${selectedLeagues.join(", ")}`}
-      </div>
-
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow className="border-b border-border/50 hover:bg-transparent">
@@ -249,6 +246,12 @@ export function AthletesModule({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground shrink-0">
+        Showing {filteredAthletes.length} athlete{filteredAthletes.length !== 1 ? "s" : ""}
+        {selectedLeagues.length > 0 && ` in ${selectedLeagues.join(", ")}`}
       </div>
     </div>
   )
