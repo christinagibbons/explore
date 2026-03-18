@@ -1,9 +1,15 @@
 /**
  * Athlete data types.
  *
- * Represents NFL player profiles and their stats.
- * Team abbreviations align with those in lib/sports-data.ts (e.g. "BAL", "KC").
+ * Represents player profiles and their stats across NFL, College, and High School.
+ * Team abbreviations align with those in lib/sports-data.ts (e.g. "BAL", "KC", "UGA", "MDM").
  */
+
+// ---------------------------------------------------------------------------
+// Leagues
+// ---------------------------------------------------------------------------
+
+export type AthleteLeague = "NFL" | "College" | "HighSchool"
 
 // ---------------------------------------------------------------------------
 // Positions
@@ -37,7 +43,9 @@ export interface Athlete {
   id?: string
   /** Player full name (unique identifier for now) */
   name: string
-  /** Team abbreviation matching sports-data.ts (e.g. "BAL", "KC", "SF") */
+  /** League: NFL, College, or HighSchool */
+  league: AthleteLeague
+  /** Team abbreviation matching sports-data.ts (e.g. "BAL", "KC", "UGA", "MDM") */
   team: string
   /** Player position */
   position: Position
@@ -47,8 +55,12 @@ export interface Athlete {
   height: string
   /** Weight in pounds */
   weight: number
-  /** College the player attended */
+  /** College the player attended (for NFL/College) or High School name */
   college: string
+  /** Grade level for high school players (e.g. "Senior", "Junior") */
+  grade?: string
+  /** Class year for college players (e.g. "Senior", "Junior", "Sophomore", "Freshman") */
+  classYear?: string
   /** Aggregate career stats */
   stats: AthleteStats
 }

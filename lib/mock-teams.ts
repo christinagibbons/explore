@@ -32,6 +32,7 @@ export interface TeamRoster {
 
 // Map team abbreviations to team IDs (sports-data uses lowercase IDs)
 const teamAbbreviationToId: Record<string, string> = {
+  // NFL Teams
   BAL: "bal",
   BUF: "buf",
   KC: "kc",
@@ -56,7 +57,30 @@ const teamAbbreviationToId: Record<string, string> = {
   TB: "tb",
   CHI: "chi",
   GB: "gb",
-  // Add more as needed
+
+  // College Teams (10 teams)
+  UGA: "geo",     // Georgia Bulldogs
+  TEX: "tex",     // Texas Longhorns
+  OSU: "osu",     // Ohio State Buckeyes
+  ORE: "ore",     // Oregon Ducks
+  ALA: "ala",     // Alabama Crimson Tide
+  MICH: "mich",   // Michigan Wolverines
+  PSU: "psu",     // Penn State Nittany Lions
+  MIAMI: "miami", // Miami Hurricanes (using MIAMI to avoid conflict with NFL MIA)
+  CLEM: "clem",   // Clemson Tigers
+  LSU: "lsu",     // LSU Tigers
+
+  // High School Teams (10 teams)
+  MDM: "hs-mater-dei",       // Mater Dei Monarchs
+  SJB: "hs-st-john-bosco",   // St. John Bosco Braves
+  IMG: "hs-img-academy",     // IMG Academy Ascenders
+  SLC: "hs-southlake",       // Southlake Carroll Dragons
+  NSM: "hs-north-shore",     // North Shore Mustangs
+  STA: "hs-st-thomas",       // St. Thomas Aquinas Raiders
+  DLS: "hs-de-la-salle",     // De La Salle Spartans
+  BUFD: "hs-buford",         // Buford Wolves (using BUFD to avoid conflict with NFL BUF)
+  KATY: "hs-katy",           // Katy Tigers
+  DUN: "hs-duncanville",     // Duncanville Panthers
 }
 
 // Build rosters dynamically from athletes data

@@ -163,7 +163,7 @@ export const sportsData: Record<League, { seasons: string[]; conferences: Confer
         teams: [
           { id: "clem", name: "Clemson Tigers", abbreviation: "CLEM", logoColor: "#F56600" },
           { id: "fsu", name: "Florida State Seminoles", abbreviation: "FSU", logoColor: "#782F40" },
-          { id: "miami", name: "Miami Hurricanes", abbreviation: "MIA", logoColor: "#F47321" },
+          { id: "miami", name: "Miami Hurricanes", abbreviation: "MIAMI", logoColor: "#F47321" },
           { id: "nc", name: "North Carolina Tar Heels", abbreviation: "UNC", logoColor: "#7BAFD4" },
           { id: "ncst", name: "NC State Wolfpack", abbreviation: "NCST", logoColor: "#CC0000" },
           { id: "duke", name: "Duke Blue Devils", abbreviation: "DUKE", logoColor: "#003087" },
@@ -216,7 +216,7 @@ export const sportsData: Record<League, { seasons: string[]; conferences: Confer
         id: "georgia-7a",
         name: "Georgia 7A",
         teams: [
-          { id: "hs-buford", name: "Buford Wolves", abbreviation: "BUF", logoColor: "#228B22" },
+          { id: "hs-buford", name: "Buford Wolves", abbreviation: "BUFD", logoColor: "#228B22" },
           { id: "hs-collins-hill", name: "Collins Hill Eagles", abbreviation: "CHE", logoColor: "#003087" },
           { id: "hs-grayson", name: "Grayson Rams", abbreviation: "GRAY", logoColor: "#8B0000" },
           { id: "hs-mill-creek", name: "Mill Creek Hawks", abbreviation: "MCH", logoColor: "#000080" },
