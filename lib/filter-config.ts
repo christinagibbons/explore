@@ -129,6 +129,31 @@ const SHORT_MEDIUM_LONG_RETURN_RANGE_MAP: Record<string, [number, number]> = {
 // ---- Section definitions ---------------------------------------------------
 
 export const FILTER_SECTIONS: FilterSection[] = [
+  // ===================== League =====================
+  {
+    key: "league",
+    title: "League",
+    subsections: [
+      {
+        filters: [
+          {
+            type: "toggle",
+            label: "League",
+            category: "league",
+            allValues: ["NFL", "College", "HighSchool"],
+            groups: [
+              [
+                { value: "NFL", label: "NFL" },
+                { value: "College", label: "College" },
+                { value: "HighSchool", label: "High School" },
+              ],
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
   // ===================== Game Context =====================
   {
     key: "game-context",
@@ -726,4 +751,4 @@ export const ALL_RANGE_CATEGORIES: string[] = FILTER_SECTIONS.flatMap((section) 
 )
 
 /** Default accordion sections that should be open on mount. */
-export const DEFAULT_OPEN_SECTIONS = ["game-context", "play-context"]
+export const DEFAULT_OPEN_SECTIONS = ["league", "game-context", "play-context"]

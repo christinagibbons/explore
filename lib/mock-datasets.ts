@@ -1,3 +1,6 @@
+// Import clips and games for getAllUniqueClips - lazy loaded to avoid circular deps
+import type { Clip } from "./mock-clips"
+
 export interface PlayData {
   id: string
   playNumber: number
@@ -15,6 +18,12 @@ export interface PlayData {
   coverage: string
   blitz: string
   game: string
+  /** League: NFL, College, or HighSchool */
+  league?: "NFL" | "College" | "HighSchool"
+  /** Foreign key to Game.id from mock-games.ts */
+  gameId?: string
+  /** Athletes featured in this play */
+  athleteIds?: string[]
   
   // Enhanced Pro Fields
   epa: number
@@ -170,17 +179,67 @@ export function getDatasetForItem(itemId: string | null): Dataset {
 }
 
 export function getAllUniqueClips(): Dataset {
-  const allPlays: PlayData[] = []
-  const seenIds = new Set<string>()
-
-  MOCK_DATASETS.forEach((dataset) => {
-    dataset.plays.forEach((play) => {
-      const uniqueKey = `${dataset.id}-${play.id}`
-      if (!seenIds.has(uniqueKey)) {
-        seenIds.add(uniqueKey)
-        allPlays.push({ ...play, id: uniqueKey })
-      }
-    })
+  // Lazy load to avoid circular dependencies
+  const { mockClips } = require("./mock-clips") as { mockClips: Clip[] }
+  const { getGameById } = require("./mock-games") as { getGameById: (id: string) => { league?: string } | undefined }
+  
+  // Convert detailed clips from mock-clips.ts to PlayData format
+  // This ensures we use the rich clip data with game/league/athlete information
+  
+  const allPlays: PlayData[] = mockClips.map((clip: Clip, index: number) => {
+    const game = getGameById(clip.gameId)
+    const league = game?.league || "NFL"
+    
+    // Map hash format from Clip to PlayData
+    const hashMap: Record<string, "L" | "R" | "M"> = { "Left": "L", "Right": "R", "Middle": "M" }
+    
+    return {
+      id: clip.id,
+      playNumber: index + 1,
+      odk: clip.passing ? "O" : clip.rushing ? "O" : "K" as "O" | "D" | "K",
+      quarter: clip.quarter,
+      down: clip.down,
+      distance: clip.distance,
+      yardLine: `${clip.yardLine > 50 ? "+" : "-"}${clip.yardLine > 50 ? 100 - clip.yardLine : clip.yardLine}`,
+      yardLineNumeric: clip.yardLine > 50 ? 100 - clip.yardLine : clip.yardLine,
+      hash: hashMap[clip.hash] || "M",
+      yards: Math.abs(clip.gain),
+      result: clip.passing?.result || clip.rushing?.attempt || "Play",
+      gainLoss: clip.gain >= 0 ? "Gn" : "Ls" as "Gn" | "Ls",
+      defFront: clip.defense.front,
+      defStr: "Strong",
+      coverage: clip.defense.coverageScheme,
+      blitz: clip.defense.isBlitz ? "Yes" : "No",
+      game: clip.matchup,
+      league,
+      gameId: clip.gameId,
+      athleteIds: clip.athleteIds,
+      
+      // Pro Fields
+      epa: clip.analytics.epa,
+      successRate: clip.analytics.successRate,
+      explosivePlay: clip.analytics.explosivePlay,
+      formationName: clip.formation.name,
+      isShotgun: clip.formation.isShotgun,
+      timeToPass: clip.passing?.timeToPass,
+      passLocation: clip.passing?.passLocation,
+      runGap: clip.rushing?.runGap,
+      isTwoMinuteDrill: clip.isTwoMinuteDrill,
+      offenseIds: clip.onField.offenseIds,
+      defenseIds: clip.onField.defenseIds,
+      
+      // Enhanced fields
+      playType: clip.passing ? "Pass" : clip.rushing ? "Run" : "Special Teams" as "Pass" | "Run" | "Special Teams",
+      passResult: clip.passing?.result as PlayData["passResult"],
+      runDirection: clip.rushing?.direction?.includes("Left") ? "Left" : 
+                   clip.rushing?.direction?.includes("Right") ? "Right" : "Middle" as PlayData["runDirection"],
+      personnelO: clip.formation.personnelO as PlayData["personnelO"],
+      personnelD: clip.formation.personnelD as PlayData["personnelD"],
+      isTouchdown: !!clip.playResult.touchdown,
+      isFirstDown: !!clip.playResult.firstDown,
+      isPenalty: !!clip.playResult.penalty,
+      penaltyType: clip.playResult.penalty,
+    }
   })
 
   return { id: "all-clips", name: "All Clips", plays: allPlays }

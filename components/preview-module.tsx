@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation"
 import type { PlayData } from "@/lib/mock-datasets"
 import type { Athlete } from "@/types/athlete"
 import type { ClipData } from "@/types/library"
+import type { Game } from "@/types/game"
+import { findTeamById, mockClips } from "@/lib/games-context"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1350,15 +1352,321 @@ function TagsAndNotesTab({ playId }: { playId: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// GamePreview Component
+// ---------------------------------------------------------------------------
+
+interface GamePreviewProps {
+  game: Game
+  onClose: () => void
+}
+
+function GamePreview({ game, onClose }: GamePreviewProps) {
+  const router = useRouter()
+  const homeTeam = findTeamById(game.homeTeamId)
+  const awayTeam = findTeamById(game.awayTeamId)
+
+  // Get clips for this game
+  const gameClips = useMemo(() => {
+    return mockClips.filter((clip) => clip.gameId === game.id)
+  }, [game.id])
+
+  // Format game date
+  const formattedDate = useMemo(() => {
+    const date = new Date(game.date)
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }, [game.date])
+
+  // Handle View Full Game action
+  const handleViewFullGame = useCallback(() => {
+    router.push("/watch")
+  }, [router])
+
+  // Handle Download action
+  const handleDownload = useCallback(() => {
+    // Placeholder for download functionality
+    console.log("Download game:", game.id)
+  }, [game.id])
+
+  // Determine winner
+  const homeWon = game.score && game.score.home > game.score.away
+  const awayWon = game.score && game.score.away > game.score.home
+
+  return (
+    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
+      {/* Fixed Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span className="text-sm font-bold truncate">{game.matchupDisplay}</span>
+          <span className="text-muted-foreground text-sm shrink-0">|</span>
+          <span className="text-sm text-muted-foreground truncate">
+            {game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`}
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <Icon name="close" className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-20">
+        {/* Game Card */}
+        <div className="px-4 pt-4">
+          <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+            {/* Teams & Score */}
+            <div className="flex items-center justify-between gap-4">
+              {/* Away Team */}
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                  style={{ backgroundColor: awayTeam?.logoColor || "#666" }}
+                >
+                  {awayTeam?.abbreviation || "AWY"}
+                </div>
+                <span className={cn(
+                  "text-sm text-center",
+                  awayWon ? "font-bold text-foreground" : "text-muted-foreground"
+                )}>
+                  {awayTeam?.name || "Away Team"}
+                </span>
+                {game.score && (
+                  <span className={cn(
+                    "text-2xl tabular-nums",
+                    awayWon ? "font-bold text-foreground" : "text-muted-foreground"
+                  )}>
+                    {game.score.away}
+                  </span>
+                )}
+              </div>
+
+              {/* VS / Score Divider */}
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs font-medium text-muted-foreground uppercase">
+                  {game.status === "final" ? "Final" : "VS"}
+                </span>
+              </div>
+
+              {/* Home Team */}
+              <div className="flex-1 flex flex-col items-center gap-2">
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+                  style={{ backgroundColor: homeTeam?.logoColor || "#666" }}
+                >
+                  {homeTeam?.abbreviation || "HME"}
+                </div>
+                <span className={cn(
+                  "text-sm text-center",
+                  homeWon ? "font-bold text-foreground" : "text-muted-foreground"
+                )}>
+                  {homeTeam?.name || "Home Team"}
+                </span>
+                {game.score && (
+                  <span className={cn(
+                    "text-2xl tabular-nums",
+                    homeWon ? "font-bold text-foreground" : "text-muted-foreground"
+                  )}>
+                    {game.score.home}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Game Info */}
+        <div className="px-4 pt-5 pb-3">
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Game Details</h4>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Date</span>
+              <span className="text-foreground">{formattedDate}</span>
+            </div>
+            {game.kickoffTime && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Kickoff</span>
+                <span className="text-foreground">{game.kickoffTime}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Venue</span>
+              <span className="text-foreground">{game.venue}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Location</span>
+              <span className="text-foreground">{game.city}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Season</span>
+              <span className="text-foreground">{game.season}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">League</span>
+              <span className="text-foreground">
+                {game.league === "HighSchool" ? "High School" : game.league}
+              </span>
+            </div>
+            {game.broadcast && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Broadcast</span>
+                <span className="text-foreground">{game.broadcast.network}</span>
+              </div>
+            )}
+            {game.attendance && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Attendance</span>
+                <span className="text-foreground">{game.attendance.toLocaleString()}</span>
+              </div>
+            )}
+            {game.weather && game.weather.condition !== "dome" && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Weather</span>
+                <span className="text-foreground capitalize">
+                  {game.weather.temperature}°F, {game.weather.condition}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quarter Scores (if available) */}
+        {game.score?.quarters && (
+          <div className="px-4 pt-4 pb-3">
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Quarter Scores</h4>
+            <div className="bg-muted/30 rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="py-2 px-3 text-left text-muted-foreground font-medium">Team</th>
+                    <th className="py-2 px-2 text-center text-muted-foreground font-medium">Q1</th>
+                    <th className="py-2 px-2 text-center text-muted-foreground font-medium">Q2</th>
+                    <th className="py-2 px-2 text-center text-muted-foreground font-medium">Q3</th>
+                    <th className="py-2 px-2 text-center text-muted-foreground font-medium">Q4</th>
+                    {game.score.quarters.ot && (
+                      <th className="py-2 px-2 text-center text-muted-foreground font-medium">OT</th>
+                    )}
+                    <th className="py-2 px-3 text-center font-bold text-foreground">T</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-border/50">
+                    <td className={cn("py-2 px-3", awayWon && "font-bold")}>{awayTeam?.abbreviation}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q1.away}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q2.away}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q3.away}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q4.away}</td>
+                    {game.score.quarters.ot && (
+                      <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.ot.away}</td>
+                    )}
+                    <td className={cn("py-2 px-3 text-center tabular-nums", awayWon && "font-bold")}>
+                      {game.score.away}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className={cn("py-2 px-3", homeWon && "font-bold")}>{homeTeam?.abbreviation}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q1.home}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q2.home}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q3.home}</td>
+                    <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.q4.home}</td>
+                    {game.score.quarters.ot && (
+                      <td className="py-2 px-2 text-center tabular-nums">{game.score.quarters.ot.home}</td>
+                    )}
+                    <td className={cn("py-2 px-3 text-center tabular-nums", homeWon && "font-bold")}>
+                      {game.score.home}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Clips in this game */}
+        <div className="px-4 pt-4 pb-6">
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+            Clips ({gameClips.length})
+          </h4>
+          {gameClips.length > 0 ? (
+            <div className="space-y-2">
+              {gameClips.slice(0, 5).map((clip) => (
+                <div
+                  key={clip.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon name="play" className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{clip.matchup}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Q{clip.quarter} • {clip.down && `${clip.down}${clip.down === 1 ? "st" : clip.down === 2 ? "nd" : clip.down === 3 ? "rd" : "th"} & ${clip.distance}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {gameClips.length > 5 && (
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  +{gameClips.length - 5} more clips
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No clips available for this game.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Fixed Footer */}
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          className="flex-1 font-semibold"
+          onClick={handleDownload}
+        >
+          <Icon name="download" className="w-4 h-4 mr-2" />
+          Download
+        </Button>
+        <Button
+          className="flex-1 font-semibold"
+          onClick={handleViewFullGame}
+        >
+          View Full Game
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // PreviewModule
 // ---------------------------------------------------------------------------
 
 interface PreviewModuleProps {
-  play: PlayData
+  play?: PlayData
+  game?: Game
   onClose: () => void
 }
 
-export function PreviewModule({ play, onClose }: PreviewModuleProps) {
+export function PreviewModule({ play, game, onClose }: PreviewModuleProps) {
+  // If game is provided, render GamePreview
+  if (game) {
+    return <GamePreview game={game} onClose={onClose} />
+  }
+
+  // Otherwise render the clip preview (need a play)
+  if (!play) {
+    return null
+  }
+
   const videoUrl = useMemo(() => getVideoForPlay(play), [play])
   const summary = useMemo(() => generatePlaySummary(play), [play])
   const roster = useMemo(() => assignPlayRoster(play), [play])

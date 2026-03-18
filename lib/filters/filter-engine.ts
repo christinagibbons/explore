@@ -17,6 +17,8 @@ import type {
  */
 export function getValueForCategory(play: PlayData, category: string): string {
   switch (category) {
+    case "league":
+      return play.league || "NFL"
     case "quarter":
       return String(play.quarter)
     case "down":

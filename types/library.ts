@@ -14,6 +14,15 @@ export interface ClipData {
   /** Globally unique clip identifier */
   id: string
 
+  /** Foreign key to Game.id - the game this clip belongs to */
+  gameId?: string
+
+  /** 
+   * Athletes featured in this clip (subset of players from the teams in the game).
+   * References athlete IDs from athletes-data.ts.
+   */
+  athleteIds?: string[]
+
   // --- Play-level fields (mirrors PlayData from mock-datasets) ---
   playNumber?: number
   odk?: "O" | "D" | "K"

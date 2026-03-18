@@ -9,6 +9,8 @@
 
 /** Every valid set-based filter category key. */
 export type FilterCategory =
+  // League
+  | "league"
   // Game Context
   | "down"
   | "distanceType"
@@ -163,7 +165,7 @@ export function hasActiveRange(
  * Useful at module boundaries that still accept `string`.
  */
 const FILTER_CATEGORIES: ReadonlySet<string> = new Set<FilterCategory>([
-  "down", "distanceType", "hash", "playType", "touchdownType",
+  "league", "down", "distanceType", "hash", "playType", "touchdownType",
   "firstDownType", "turnoverType", "passResult", "passPressureResult",
   "depthOfTarget", "passLocation", "gainLoss", "yardsAfterContact", "runDirection",
   "runGap", "formationName", "personnelO", "personnelD",

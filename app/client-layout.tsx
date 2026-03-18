@@ -17,6 +17,7 @@ import { LibraryProvider } from "@/lib/library-context"
 import { WatchProvider } from "@/components/watch/watch-context"
 import { CreatePlaylistModal } from "@/components/create-playlist-modal"
 import { Toaster } from "@/components/ui/toaster"
+import { ExploreProvider } from "@/lib/explore-context"
 
 function ClientLayoutInner({ 
   isWatchPage,
@@ -55,6 +56,7 @@ function ClientLayoutInner({
               router.push("/library")
             }
           }}
+          showFiltersToggle={isExplorePage}
         />
 
         <main className={`flex-1 overflow-hidden ${isWatchPage ? "pl-2" : ""}`}>
@@ -83,14 +85,16 @@ export default function ClientLayout({
         <DensityProvider>
           <LibraryProvider>
             <WatchProvider>
-              <SidebarProvider defaultOpen={true}>
-                <ClientLayoutInner isWatchPage={isWatchPage} isExplorePage={isExplorePage} searchValue={searchValue} setSearchValue={setSearchValue} router={router}>
-                  {children}
-                </ClientLayoutInner>
-                <CreatePlaylistModal />
-                <Toaster />
-                <Analytics />
-              </SidebarProvider>
+              <ExploreProvider>
+                <SidebarProvider defaultOpen={true}>
+                  <ClientLayoutInner isWatchPage={isWatchPage} isExplorePage={isExplorePage} searchValue={searchValue} setSearchValue={setSearchValue} router={router}>
+                    {children}
+                  </ClientLayoutInner>
+                  <CreatePlaylistModal />
+                  <Toaster />
+                  <Analytics />
+                </SidebarProvider>
+              </ExploreProvider>
             </WatchProvider>
           </LibraryProvider>
         </DensityProvider>

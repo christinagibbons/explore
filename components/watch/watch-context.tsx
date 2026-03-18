@@ -33,7 +33,7 @@ interface WatchContextType {
   // Selection State
   selectedPlayIds: Set<string>
   togglePlaySelection: (playId: string) => void
-  selectAllPlays: () => void
+  selectAllPlays: (plays?: { id: string }[]) => void
   clearPlaySelection: () => void
 
   // Actions
@@ -602,9 +602,10 @@ export function WatchProvider({
     })
   }
 
-  const selectAllPlays = () => {
-    if (activeDataset) {
-      setSelectedPlayIds(new Set(activeDataset.plays.map((p) => p.id)))
+  const selectAllPlays = (plays?: { id: string }[]) => {
+    const playsToSelect = plays || activeDataset?.plays
+    if (playsToSelect) {
+      setSelectedPlayIds(new Set(playsToSelect.map((p) => p.id)))
     }
   }
 

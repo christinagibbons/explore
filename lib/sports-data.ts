@@ -1,4 +1,4 @@
-export type League = "NFL" | "NCAA (FBS)"
+export type League = "NFL" | "NCAA (FBS)" | "HighSchool"
 
 export interface Team {
   id: string
@@ -163,10 +163,65 @@ export const sportsData: Record<League, { seasons: string[]; conferences: Confer
         teams: [
           { id: "clem", name: "Clemson Tigers", abbreviation: "CLEM", logoColor: "#F56600" },
           { id: "fsu", name: "Florida State Seminoles", abbreviation: "FSU", logoColor: "#782F40" },
-          { id: "miami", name: "Miami Hurricanes", abbreviation: "MIA", logoColor: "#F47321" },
+          { id: "miami", name: "Miami Hurricanes", abbreviation: "MIAMI", logoColor: "#F47321" },
           { id: "nc", name: "North Carolina Tar Heels", abbreviation: "UNC", logoColor: "#7BAFD4" },
           { id: "ncst", name: "NC State Wolfpack", abbreviation: "NCST", logoColor: "#CC0000" },
           { id: "duke", name: "Duke Blue Devils", abbreviation: "DUKE", logoColor: "#003087" },
+        ],
+      },
+    ],
+  },
+  "HighSchool": {
+    seasons: ["2024", "2023", "2022"],
+    conferences: [
+      {
+        id: "texas-6a",
+        name: "Texas 6A",
+        teams: [
+          { id: "hs-southlake", name: "Southlake Carroll Dragons", abbreviation: "SLC", logoColor: "#006747" },
+          { id: "hs-north-shore", name: "North Shore Mustangs", abbreviation: "NSM", logoColor: "#003DA5" },
+          { id: "hs-duncanville", name: "Duncanville Panthers", abbreviation: "DUN", logoColor: "#002D62" },
+          { id: "hs-westlake", name: "Westlake Chaparrals", abbreviation: "WLC", logoColor: "#8B4513" },
+          { id: "hs-katy", name: "Katy Tigers", abbreviation: "KATY", logoColor: "#CC0000" },
+          { id: "hs-allen", name: "Allen Eagles", abbreviation: "ALLE", logoColor: "#003087" },
+          { id: "hs-galena-park", name: "Galena Park Gophers", abbreviation: "GPG", logoColor: "#FFD700" },
+          { id: "hs-dekaney", name: "Dekaney Wildcats", abbreviation: "DEK", logoColor: "#000080" },
+        ],
+      },
+      {
+        id: "california-open",
+        name: "California Open",
+        teams: [
+          { id: "hs-mater-dei", name: "Mater Dei Monarchs", abbreviation: "MDM", logoColor: "#00274C" },
+          { id: "hs-st-john-bosco", name: "St. John Bosco Braves", abbreviation: "SJB", logoColor: "#FFD700" },
+          { id: "hs-de-la-salle", name: "De La Salle Spartans", abbreviation: "DLS", logoColor: "#006400" },
+          { id: "hs-serra", name: "Serra Padres", abbreviation: "SERR", logoColor: "#00008B" },
+          { id: "hs-mission-viejo", name: "Mission Viejo Diablos", abbreviation: "MVD", logoColor: "#CC0000" },
+          { id: "hs-orange-lutheran", name: "Orange Lutheran Lancers", abbreviation: "OLL", logoColor: "#FF6600" },
+        ],
+      },
+      {
+        id: "florida-8a",
+        name: "Florida 8A",
+        teams: [
+          { id: "hs-img-academy", name: "IMG Academy Ascenders", abbreviation: "IMG", logoColor: "#000000" },
+          { id: "hs-st-thomas", name: "St. Thomas Aquinas Raiders", abbreviation: "STA", logoColor: "#003DA5" },
+          { id: "hs-miami-central", name: "Miami Central Rockets", abbreviation: "MCR", logoColor: "#FF6600" },
+          { id: "hs-miami-northwestern", name: "Miami Northwestern Bulls", abbreviation: "MNW", logoColor: "#800000" },
+          { id: "hs-lakeland", name: "Lakeland Dreadnaughts", abbreviation: "LAK", logoColor: "#4B0082" },
+          { id: "hs-apopka", name: "Apopka Blue Darters", abbreviation: "APK", logoColor: "#0033A0" },
+        ],
+      },
+      {
+        id: "georgia-7a",
+        name: "Georgia 7A",
+        teams: [
+          { id: "hs-buford", name: "Buford Wolves", abbreviation: "BUFD", logoColor: "#228B22" },
+          { id: "hs-collins-hill", name: "Collins Hill Eagles", abbreviation: "CHE", logoColor: "#003087" },
+          { id: "hs-grayson", name: "Grayson Rams", abbreviation: "GRAY", logoColor: "#8B0000" },
+          { id: "hs-mill-creek", name: "Mill Creek Hawks", abbreviation: "MCH", logoColor: "#000080" },
+          { id: "hs-north-gwinnett", name: "North Gwinnett Bulldogs", abbreviation: "NGB", logoColor: "#CC0000" },
+          { id: "hs-walton", name: "Walton Raiders", abbreviation: "WALT", logoColor: "#800080" },
         ],
       },
     ],

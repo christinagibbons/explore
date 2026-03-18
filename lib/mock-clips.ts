@@ -1,6 +1,15 @@
+import { mockGames, getGameById } from "./mock-games"
+import { getAthleteIdsForTeam } from "./mock-teams"
+
 export interface Clip {
   id: string
+  /** Foreign key to Game.id from mock-games.ts */
   gameId: string
+  /** 
+   * Athletes featured in this clip (subset of players from the teams in the game).
+   * References athlete IDs from athletes-data.ts.
+   */
+  athleteIds: string[]
   matchup: string
   date: string
   quarter: number
@@ -146,31 +155,90 @@ const randomFloat = (min: number, max: number) => (Math.random() * (max - min) +
 const directions = ["Left end", "Left tackle", "Left guard", "Center", "Right guard", "Right tackle", "Right end"] as const
 const depths = ["Behind LOS", "0-10", "10-20", "20+"] as const
 const routes = ["Go", "Slant", "Out", "Dig", "Post", "Corner", "Curl", "Flat", "Seam"]
-const matchups = ["GB @ CHI", "KC @ BAL", "SF @ DAL", "PHI @ NYG", "DET @ MIN"]
 const formations = ["Trey Left", "Deuce Right", "Empty Strong", "Trips Right", "I-Form Tight"]
 const coverages = ["Cover 1", "Cover 2", "Cover 3 Match", "Quarters", "Cover 0"]
 const passLocs = ["Left Sideline", "Left Numbers", "Middle", "Right Numbers", "Right Sideline"] as const
 
-// Mock generation for 11 random offense and defense IDs (from ath-001 to ath-050)
-function getMockOnFieldIds() {
-  const oIds = Array.from({length: 11}, () => `ath-${String(randomInt(1, 26)).padStart(3, '0')}`);
-  const dIds = Array.from({length: 11}, () => `ath-${String(randomInt(27, 50)).padStart(3, '0')}`);
-  return { offenseIds: [...new Set(oIds)], defenseIds: [...new Set(dIds)] };
+// Use real game IDs from mock-games.ts - get completed games from each league
+const nflGameIds = mockGames.filter(g => g.status === "final" && g.league === "NFL").map(g => g.id)
+const collegeGameIds = mockGames.filter(g => g.status === "final" && g.league === "College").map(g => g.id)
+const hsGameIds = mockGames.filter(g => g.status === "final" && g.league === "HighSchool").map(g => g.id)
+
+// Combine game IDs with distribution: ~30 NFL, ~25 College, ~20 HS
+const allGameIds = [
+  ...nflGameIds.slice(0, 8),
+  ...collegeGameIds.slice(0, 15),
+  ...hsGameIds.slice(0, 15)
+]
+
+/**
+ * Get athlete IDs for a game's teams, selecting a random subset for the clip
+ * @param gameId - The game ID to get athletes for
+ * @param count - Number of athletes to select (1-5 featured athletes per clip)
+ */
+function getAthleteIdsForClip(gameId: string, count: number = 3): string[] {
+  const game = getGameById(gameId)
+  if (!game) return []
+  
+  const homeAthletes = getAthleteIdsForTeam(game.homeTeamId)
+  const awayAthletes = getAthleteIdsForTeam(game.awayTeamId)
+  const allAthletes = [...homeAthletes, ...awayAthletes]
+  
+  // Shuffle and take a subset
+  const shuffled = allAthletes.sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(count, shuffled.length))
 }
 
-export const mockClips: Clip[] = Array.from({ length: 50 }).map((_, i) => {
+/**
+ * Get on-field player IDs (11 offense, 11 defense) from game teams
+ */
+function getMockOnFieldIds(gameId: string) {
+  const game = getGameById(gameId)
+  if (!game) {
+    // Fallback to random IDs if game not found
+    const oIds = Array.from({length: 11}, () => `ath-${String(randomInt(1, 26)).padStart(3, '0')}`);
+    const dIds = Array.from({length: 11}, () => `ath-${String(randomInt(27, 50)).padStart(3, '0')}`);
+    return { offenseIds: [...new Set(oIds)], defenseIds: [...new Set(dIds)] };
+  }
+  
+  const homeAthletes = getAthleteIdsForTeam(game.homeTeamId)
+  const awayAthletes = getAthleteIdsForTeam(game.awayTeamId)
+  
+  // Home team on offense, away team on defense (simplified)
+  // In reality this would alternate, but for mock data this works
+  const offenseIds = homeAthletes.length > 0 
+    ? homeAthletes.sort(() => Math.random() - 0.5).slice(0, 11)
+    : Array.from({length: 11}, () => `ath-${String(randomInt(1, 26)).padStart(3, '0')}`)
+  
+  const defenseIds = awayAthletes.length > 0
+    ? awayAthletes.sort(() => Math.random() - 0.5).slice(0, 11)
+    : Array.from({length: 11}, () => `ath-${String(randomInt(27, 50)).padStart(3, '0')}`)
+  
+  return { offenseIds: [...new Set(offenseIds)], defenseIds: [...new Set(defenseIds)] };
+}
+
+export const mockClips: Clip[] = Array.from({ length: 75 }).map((_, i) => {
   const isPass = Math.random() > 0.45;
   const isRun = !isPass && Math.random() > 0.2;
   const isSpecial = !isPass && !isRun;
   const gain = isPass ? randomInt(-7, 35) : isRun ? randomInt(-3, 20) : 0;
   const epa = randomFloat(-3.5, 4.5);
-  const onField = getMockOnFieldIds();
+  
+  // Assign clip to a real game (distribute across available games from all leagues)
+  const gameIndex = i % allGameIds.length;
+  const gameId = allGameIds[gameIndex] || "game-001";
+  const game = getGameById(gameId);
+  
+  // Get athletes for this clip from the game's teams
+  const athleteIds = getAthleteIdsForClip(gameId, randomInt(2, 5));
+  const onField = getMockOnFieldIds(gameId);
 
   return {
     id: `clip-${String(i + 1).padStart(4, "0")}`,
-    gameId: `game-${Math.floor(i / 10)}`,
-    matchup: matchups[i % matchups.length],
-    date: "2024-11-17",
+    gameId,
+    athleteIds,
+    matchup: game?.matchupDisplay || "TBD",
+    date: game?.date || "2024-11-17",
     quarter: (i % 4) + 1,
     time: `${String(15 - (i % 15)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}`,
     down: (i % 4) + 1,

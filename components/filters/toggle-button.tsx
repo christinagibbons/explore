@@ -23,7 +23,7 @@ export function ToggleButton({ label, isSelected, onClick }: ToggleButtonProps) 
       className={cn(
         "px-3 py-1.5 text-xs font-medium rounded border transition-colors",
         isSelected
-          ? "bg-foreground text-background border-foreground"
+          ? "bg-slate-500 text-white border-slate-500 dark:bg-slate-600 dark:border-slate-600"
           : "bg-background text-muted-foreground border-border hover:border-muted-foreground/50"
       )}
     >
