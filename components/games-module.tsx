@@ -170,8 +170,7 @@ function LeagueSection({ league, games }: { league: GameLeague; games: Game[] })
       <div className="space-y-2">
         {games.map((game) => (
           <GameTile key={game.id} game={game} />
-))}
-        </div>
+        ))}
       </div>
     </div>
   )
@@ -313,13 +312,9 @@ export function GamesModule({
                       league={leagueGroup.league}
                       games={leagueGroup.games}
                     />
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
+))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
