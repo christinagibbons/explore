@@ -1688,6 +1688,7 @@ interface TeamPreviewProps {
   team: Team
   onClose: () => void
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
+  onNavigateToGame?: (game: Game) => void
   hideHeader?: boolean
 }
 
@@ -1708,7 +1709,7 @@ function generateTeamStats(teamId: string) {
   }
 }
 
-function TeamPreview({ team, onClose, onNavigateToAthlete, hideHeader }: TeamPreviewProps) {
+function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hideHeader }: TeamPreviewProps) {
   const router = useRouter()
 
   // Get team stats (deterministic mock data)
@@ -1766,6 +1767,7 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, hideHeader }: TeamPre
         const won = teamScore > opponentScore
         return {
           id: game.id,
+          gameData: game, // Include full game object for navigation
           opponent: opponent?.name || "Unknown",
           opponentAbbr: opponent?.abbreviation || "UNK",
           teamScore,
@@ -1908,6 +1910,7 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, hideHeader }: TeamPre
                 <div
                   key={game.id}
                   className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => onNavigateToGame?.(game.gameData)}
                 >
                   <div
                     className={cn(
@@ -2161,7 +2164,7 @@ export function PreviewModule({
 
   // If team is provided, render TeamPreview
   if (team) {
-    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} hideHeader={hideHeader} />
+    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} onNavigateToGame={onNavigateToGame} hideHeader={hideHeader} />
   }
 
   // If game is provided, render GamePreview

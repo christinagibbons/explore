@@ -396,6 +396,7 @@ export function PreviewModuleV1({
             team={currentPreview.data as Team}
             onClose={() => {}} // Handled by our header
             onNavigateToAthlete={handleNavigateToAthlete}
+            onNavigateToGame={handleNavigateToGame}
             hideHeader
           />
         )
