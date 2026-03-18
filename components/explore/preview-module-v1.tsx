@@ -19,7 +19,7 @@
  * - Team / Game, Athlete / Team, Athlete / Game
  */
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
@@ -27,9 +27,14 @@ import type { PlayData } from "@/lib/mock-datasets"
 import type { Athlete } from "@/types/athlete"
 import type { Game } from "@/types/game"
 import type { Team } from "@/lib/sports-data"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 // Import the individual preview components from the main preview module
-// We'll re-export the existing previews but wrap them with breadcrumb logic
 import { PreviewModule } from "@/components/preview-module"
 
 // ---------------------------------------------------------------------------
@@ -50,11 +55,6 @@ interface PreviewModuleV1Props {
   team?: Team
   athlete?: Athlete & { id?: string }
   onClose: () => void
-  // Callback to navigate to different preview types
-  onNavigateToTeam?: (team: Team, fromItem?: BreadcrumbItem) => void
-  onNavigateToAthlete?: (athlete: Athlete & { id?: string }, fromItem?: BreadcrumbItem) => void
-  onNavigateToGame?: (game: Game, fromItem?: BreadcrumbItem) => void
-  onNavigateToClip?: (play: PlayData, fromItem?: BreadcrumbItem) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -99,50 +99,168 @@ function getBreadcrumbLabel(item: BreadcrumbItem): string {
   }
 }
 
+/**
+ * Get icon name for item type
+ */
+function getItemIcon(type: PreviewItemType): string {
+  switch (type) {
+    case "game": return "calendar"
+    case "team": return "team"
+    case "athlete": return "user"
+    case "clip": return "play"
+    default: return "file"
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Breadcrumb Navigation Bar
+// Breadcrumb Header Component
 // ---------------------------------------------------------------------------
 
-interface BreadcrumbNavProps {
+interface BreadcrumbHeaderProps {
   items: BreadcrumbItem[]
   onNavigate: (index: number) => void
   onBack: () => void
+  onClose: () => void
 }
 
-function BreadcrumbNav({ items, onNavigate, onBack }: BreadcrumbNavProps) {
-  if (items.length <= 1) return null
+function BreadcrumbHeader({ items, onNavigate, onBack, onClose }: BreadcrumbHeaderProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [isTruncated, setIsTruncated] = useState(false)
+  
+  // Check if breadcrumbs need truncation
+  useEffect(() => {
+    const checkTruncation = () => {
+      if (containerRef.current) {
+        const container = containerRef.current
+        setIsTruncated(container.scrollWidth > container.clientWidth)
+      }
+    }
+    
+    checkTruncation()
+    const resizeObserver = new ResizeObserver(checkTruncation)
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current)
+    }
+    return () => resizeObserver.disconnect()
+  }, [items])
+
+  const hasBreadcrumbs = items.length > 1
+  const currentItem = items[items.length - 1]
+
+  // Full breadcrumb trail for tooltip
+  const fullTrail = items.map(item => getBreadcrumbLabel(item)).join(" / ")
 
   return (
-    <div className="flex items-center gap-1.5 px-4 py-2.5 bg-muted/50 border-b border-border/50 shrink-0">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0 gap-2">
+      {/* Left side: Back button + Breadcrumbs */}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        {/* Back button - only show when we have history */}
+        {hasBreadcrumbs && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onBack}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="chevronLeft" className="w-4 h-4" />
+          </Button>
+        )}
+        
+        {/* Breadcrumbs or Title */}
+        {hasBreadcrumbs ? (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div 
+                  ref={containerRef}
+                  className="flex items-center gap-1 min-w-0 overflow-hidden"
+                >
+                  {isTruncated ? (
+                    // Truncated view: show ellipsis + last 2 items
+                    <>
+                      <span className="text-muted-foreground text-sm">...</span>
+                      <Icon name="chevronRight" className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+                      {items.slice(-2).map((item, idx) => {
+                        const actualIndex = items.length - 2 + idx
+                        const isLast = idx === 1
+                        return (
+                          <div key={`${item.type}-${actualIndex}`} className="flex items-center gap-1 shrink-0">
+                            {idx > 0 && (
+                              <Icon name="chevronRight" className="w-3 h-3 text-muted-foreground/60" />
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onNavigate(actualIndex)
+                              }}
+                              className={cn(
+                                "text-sm px-1.5 py-0.5 rounded transition-colors truncate max-w-[100px]",
+                                isLast
+                                  ? "font-semibold text-foreground"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              )}
+                              disabled={isLast}
+                            >
+                              {getBreadcrumbLabel(item)}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </>
+                  ) : (
+                    // Full view: show all breadcrumbs
+                    items.map((item, index) => {
+                      const isLast = index === items.length - 1
+                      return (
+                        <div key={`${item.type}-${index}`} className="flex items-center gap-1 shrink-0">
+                          {index > 0 && (
+                            <Icon name="chevronRight" className="w-3 h-3 text-muted-foreground/60" />
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onNavigate(index)
+                            }}
+                            className={cn(
+                              "text-sm px-1.5 py-0.5 rounded transition-colors truncate max-w-[120px]",
+                              isLast
+                                ? "font-semibold text-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            disabled={isLast}
+                          >
+                            {getBreadcrumbLabel(item)}
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </TooltipTrigger>
+              {isTruncated && (
+                <TooltipContent side="bottom" align="start" className="max-w-[300px]">
+                  <p className="text-xs">{fullTrail}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          // No breadcrumbs - show current item title
+          <span className="text-sm font-semibold text-foreground truncate">
+            {currentItem ? getBreadcrumbLabel(currentItem) : "Preview"}
+          </span>
+        )}
+      </div>
+      
+      {/* Close button */}
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={onBack}
-        className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+        onClick={onClose}
+        className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
       >
-        <Icon name="chevronLeft" className="w-4 h-4" />
+        <Icon name="close" className="w-4 h-4" />
       </Button>
-      <div className="flex items-center gap-1 min-w-0 overflow-x-auto flex-1">
-        {items.map((item, index) => (
-          <div key={`${item.type}-${index}`} className="flex items-center gap-1 shrink-0">
-            {index > 0 && (
-              <Icon name="chevronRight" className="w-3 h-3 text-muted-foreground/60" />
-            )}
-            <button
-              onClick={() => onNavigate(index)}
-              className={cn(
-                "text-sm px-2 py-1 rounded-md transition-colors truncate max-w-[140px]",
-                index === items.length - 1
-                  ? "font-semibold text-foreground bg-background/80"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-              disabled={index === items.length - 1}
-            >
-              {getBreadcrumbLabel(item)}
-            </button>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
@@ -260,37 +378,42 @@ export function PreviewModuleV1({
   if (!currentPreview) return null
 
   // Render the appropriate preview based on current state
+  // We pass a dummy onClose that does nothing since we handle closing in our header
   const renderPreview = () => {
     switch (currentPreview.type) {
       case "game":
         return (
           <PreviewModule
             game={currentPreview.data as Game}
-            onClose={onClose}
+            onClose={() => {}} // Handled by our header
             onNavigateToTeam={handleNavigateToTeam}
+            hideHeader
           />
         )
       case "team":
         return (
           <PreviewModule
             team={currentPreview.data as Team}
-            onClose={onClose}
+            onClose={() => {}} // Handled by our header
             onNavigateToAthlete={handleNavigateToAthlete}
+            hideHeader
           />
         )
       case "athlete":
         return (
           <PreviewModule
             athlete={currentPreview.data as Athlete & { id?: string }}
-            onClose={onClose}
+            onClose={() => {}} // Handled by our header
+            hideHeader
           />
         )
       case "clip":
         return (
           <PreviewModule
             play={currentPreview.data as PlayData}
-            onClose={onClose}
+            onClose={() => {}} // Handled by our header
             onNavigateToAthlete={handleNavigateToAthlete}
+            hideHeader
           />
         )
       default:
@@ -298,18 +421,15 @@ export function PreviewModuleV1({
     }
   }
 
-  const hasBreadcrumbs = breadcrumbs.length > 1
-
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
-      {/* Breadcrumb Navigation - only shown when navigating */}
-      {hasBreadcrumbs && (
-        <BreadcrumbNav
-          items={breadcrumbs}
-          onNavigate={handleBreadcrumbClick}
-          onBack={handleBack}
-        />
-      )}
+      {/* Integrated Breadcrumb Header */}
+      <BreadcrumbHeader
+        items={breadcrumbs}
+        onNavigate={handleBreadcrumbClick}
+        onBack={handleBack}
+        onClose={onClose}
+      />
       
       {/* Preview Content */}
       <div className="flex-1 overflow-hidden">

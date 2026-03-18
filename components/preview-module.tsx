@@ -1362,9 +1362,10 @@ interface GamePreviewProps {
   game: Game
   onClose: () => void
   onNavigateToTeam?: (team: Team) => void
+  hideHeader?: boolean
 }
 
-function GamePreview({ game, onClose, onNavigateToTeam }: GamePreviewProps) {
+function GamePreview({ game, onClose, onNavigateToTeam, hideHeader }: GamePreviewProps) {
   const router = useRouter()
   const homeTeam = findTeamById(game.homeTeamId)
   const awayTeam = findTeamById(game.awayTeamId)
@@ -1402,25 +1403,27 @@ function GamePreview({ game, onClose, onNavigateToTeam }: GamePreviewProps) {
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="text-sm font-bold truncate">{game.matchupDisplay}</span>
-          <span className="text-muted-foreground text-sm shrink-0">|</span>
-          <span className="text-sm text-muted-foreground truncate">
-            {game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`}
-          </span>
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-bold truncate">{game.matchupDisplay}</span>
+            <span className="text-muted-foreground text-sm shrink-0">|</span>
+            <span className="text-sm text-muted-foreground truncate">
+              {game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
@@ -1664,6 +1667,7 @@ interface TeamPreviewProps {
   team: Team
   onClose: () => void
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
+  hideHeader?: boolean
 }
 
 /** Generate deterministic mock team stats based on team ID */
@@ -1683,7 +1687,7 @@ function generateTeamStats(teamId: string) {
   }
 }
 
-function TeamPreview({ team, onClose, onNavigateToAthlete }: TeamPreviewProps) {
+function TeamPreview({ team, onClose, onNavigateToAthlete, hideHeader }: TeamPreviewProps) {
   const router = useRouter()
 
   // Get team stats (deterministic mock data)
@@ -1758,26 +1762,28 @@ function TeamPreview({ team, onClose, onNavigateToAthlete }: TeamPreviewProps) {
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <div
-            className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-            style={{ backgroundColor: team.logoColor }}
-          >
-            {team.abbreviation}
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+              style={{ backgroundColor: team.logoColor }}
+            >
+              {team.abbreviation}
+            </div>
+            <span className="text-sm font-bold truncate">{team.name}</span>
           </div>
-          <span className="text-sm font-bold truncate">{team.name}</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
@@ -1941,9 +1947,10 @@ function TeamPreview({ team, onClose, onNavigateToAthlete }: TeamPreviewProps) {
 interface AthletePreviewProps {
   athlete: Athlete & { id?: string }
   onClose: () => void
+  hideHeader?: boolean
 }
 
-function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
+function AthletePreview({ athlete, onClose, hideHeader }: AthletePreviewProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
@@ -1959,18 +1966,20 @@ function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Header with close button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* Header with close button - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
@@ -2092,6 +2101,8 @@ interface PreviewModuleProps {
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
   onNavigateToGame?: (game: Game) => void
   onNavigateToClip?: (play: PlayData) => void
+  // Hide the internal header (used when wrapped by breadcrumb navigation)
+  hideHeader?: boolean
 }
 
 export function PreviewModule({ 
@@ -2104,20 +2115,21 @@ export function PreviewModule({
   onNavigateToAthlete,
   onNavigateToGame,
   onNavigateToClip,
+  hideHeader,
 }: PreviewModuleProps) {
   // If athlete is provided, render AthletePreview
   if (athlete) {
-    return <AthletePreview athlete={athlete} onClose={onClose} />
+    return <AthletePreview athlete={athlete} onClose={onClose} hideHeader={hideHeader} />
   }
 
   // If team is provided, render TeamPreview
   if (team) {
-    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} />
+    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} hideHeader={hideHeader} />
   }
 
   // If game is provided, render GamePreview
   if (game) {
-    return <GamePreview game={game} onClose={onClose} onNavigateToTeam={onNavigateToTeam} />
+    return <GamePreview game={game} onClose={onClose} onNavigateToTeam={onNavigateToTeam} hideHeader={hideHeader} />
   }
 
   // Otherwise render the clip preview (need a play)
@@ -2197,23 +2209,25 @@ export function PreviewModule({
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="text-sm font-bold truncate">Clip {play.playNumber}</span>
-          <span className="text-muted-foreground text-sm shrink-0">|</span>
-          <span className="text-sm text-muted-foreground truncate">{formatGameLabel(play.game)}</span>
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-bold truncate">Clip {play.playNumber}</span>
+            <span className="text-muted-foreground text-sm shrink-0">|</span>
+            <span className="text-sm text-muted-foreground truncate">{formatGameLabel(play.game)}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
