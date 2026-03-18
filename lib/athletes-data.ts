@@ -170,10 +170,31 @@ export const athletes: (Athlete & { id: string })[] = [
 
 export function getAthletesByTeam(teamAbbreviation: string) { return athletes.filter((a) => a.team === teamAbbreviation) }
 export function getAthletesByPosition(position: Position) { return athletes.filter((a) => a.position === position) }
-export function getAthleteByName(name: string) { return athletes.find((a) => a.name === name) }
-export function getAthleteById(id: string) { return athletes.find((a) => a.id === id) }
-export function searchAthletes(query: string) { return athletes.filter((a) => a.name.toLowerCase().includes(query.toLowerCase())) }
-export function getAllPositions(): Position[] { return [...new Set(athletes.map((a) => a.position))] }
+  export function getAthleteByName(name: string) { return athletes.find((a) => a.name === name) }
+  export function getAthleteById(id: string) { return athletes.find((a) => a.id === id) }
+  export function searchAthletes(query: string) { return athletes.filter((a) => a.name.toLowerCase().includes(query.toLowerCase())) }
+  export function getAllPositions(): Position[] { return [...new Set(athletes.map((a) => a.position))] }
+
+  /**
+   * Convert a name to a URL-friendly slug
+   * e.g., "Josh Allen" -> "josh-allen"
+   */
+  export function nameToSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single
+      .trim()
+  }
+
+  /**
+   * Get an athlete by their URL slug
+   * e.g., getAthleteBySlug("josh-allen") returns Josh Allen's data
+   */
+  export function getAthleteBySlug(slug: string) {
+    return athletes.find((a) => nameToSlug(a.name) === slug.toLowerCase())
+  }
 export function getAllTeams(): string[] { return [...new Set(athletes.map((a) => a.team))] }
 
 // ---------------------------------------------------------------------------

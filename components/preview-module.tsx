@@ -678,10 +678,11 @@ const TEAM_FULL_NAMES: Record<string, string> = {
   TB: "Tampa Bay Buccaneers",
 }
 
-function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () => void }) {
+function AthleteProfileView({ athlete, onBack, onNavigateToTeam }: { athlete: Athlete; onBack: () => void; onNavigateToTeam?: (team: Team) => void }) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
+  const athleteTeam = useMemo(() => findTeamById(athlete.team), [athlete.team])
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
@@ -707,7 +708,16 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
-              <span className="text-primary font-medium">{teamName}</span>
+              {athleteTeam && onNavigateToTeam ? (
+                <button
+                  onClick={() => onNavigateToTeam(athleteTeam)}
+                  className="text-primary font-medium hover:underline cursor-pointer"
+                >
+                  {teamName}
+                </button>
+              ) : (
+                <span className="text-primary font-medium">{teamName}</span>
+              )}
               <span className="text-border">{"·"}</span>
               <span>{athlete.position}</span>
               <span className="text-border">{"·"}</span>
@@ -743,7 +753,12 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
               <IdentityRow label="Position" value={athlete.position} />
               <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
               <IdentityRow label="College" value={athlete.college} />
-              <IdentityRow label="Team" value={teamName} isLast />
+              <IdentityRow 
+                label="Team" 
+                value={teamName} 
+                isLast 
+                onClick={athleteTeam && onNavigateToTeam ? () => onNavigateToTeam(athleteTeam) : undefined}
+              />
             </div>
 
             {/* Key Stats */}
@@ -782,14 +797,20 @@ function AthleteProfileView({ athlete, onBack }: { athlete: Athlete; onBack: () 
   )
 }
 
-function IdentityRow({ label, value, isLast }: { label: string; value: string; isLast?: boolean }) {
+function IdentityRow({ label, value, isLast, onClick }: { label: string; value: string; isLast?: boolean; onClick?: () => void }) {
   return (
-    <div className={cn("flex items-center justify-between py-3", !isLast && "border-b border-dotted border-border")}>
-      <span className="text-sm font-bold text-foreground">{label}</span>
-      <span className="text-sm text-muted-foreground">{value}</span>
-    </div>
+  <div className={cn("flex items-center justify-between py-3", !isLast && "border-b border-dotted border-border")}>
+  <span className="text-sm font-bold text-foreground">{label}</span>
+  {onClick ? (
+    <button onClick={onClick} className="text-sm text-primary font-medium hover:underline cursor-pointer">
+      {value}
+    </button>
+  ) : (
+    <span className="text-sm text-muted-foreground">{value}</span>
+  )}
+  </div>
   )
-}
+  }
 
 // ---------------------------------------------------------------------------
 // Convert PlayData to ClipData
@@ -1361,9 +1382,11 @@ function TagsAndNotesTab({ playId }: { playId: string }) {
 interface GamePreviewProps {
   game: Game
   onClose: () => void
+  onNavigateToTeam?: (team: Team) => void
+  hideHeader?: boolean
 }
 
-function GamePreview({ game, onClose }: GamePreviewProps) {
+function GamePreview({ game, onClose, onNavigateToTeam, hideHeader }: GamePreviewProps) {
   const router = useRouter()
   const homeTeam = findTeamById(game.homeTeamId)
   const awayTeam = findTeamById(game.awayTeamId)
@@ -1401,25 +1424,27 @@ function GamePreview({ game, onClose }: GamePreviewProps) {
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="text-sm font-bold truncate">{game.matchupDisplay}</span>
-          <span className="text-muted-foreground text-sm shrink-0">|</span>
-          <span className="text-sm text-muted-foreground truncate">
-            {game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`}
-          </span>
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-bold truncate">{game.matchupDisplay}</span>
+            <span className="text-muted-foreground text-sm shrink-0">|</span>
+            <span className="text-sm text-muted-foreground truncate">
+              {game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
@@ -1429,7 +1454,10 @@ function GamePreview({ game, onClose }: GamePreviewProps) {
             {/* Teams & Score */}
             <div className="flex items-center justify-between gap-4">
               {/* Away Team */}
-              <div className="flex-1 flex flex-col items-center gap-2">
+              <div 
+                className="flex-1 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => awayTeam && onNavigateToTeam?.(awayTeam)}
+              >
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold"
                   style={{ backgroundColor: awayTeam?.logoColor || "#666" }}
@@ -1460,7 +1488,10 @@ function GamePreview({ game, onClose }: GamePreviewProps) {
               </div>
 
               {/* Home Team */}
-              <div className="flex-1 flex flex-col items-center gap-2">
+              <div 
+                className="flex-1 flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => homeTeam && onNavigateToTeam?.(homeTeam)}
+              >
                 <div
                   className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold"
                   style={{ backgroundColor: homeTeam?.logoColor || "#666" }}
@@ -1656,6 +1687,8 @@ function GamePreview({ game, onClose }: GamePreviewProps) {
 interface TeamPreviewProps {
   team: Team
   onClose: () => void
+  onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
+  hideHeader?: boolean
 }
 
 /** Generate deterministic mock team stats based on team ID */
@@ -1675,7 +1708,7 @@ function generateTeamStats(teamId: string) {
   }
 }
 
-function TeamPreview({ team, onClose }: TeamPreviewProps) {
+function TeamPreview({ team, onClose, onNavigateToAthlete, hideHeader }: TeamPreviewProps) {
   const router = useRouter()
 
   // Get team stats (deterministic mock data)
@@ -1750,26 +1783,28 @@ function TeamPreview({ team, onClose }: TeamPreviewProps) {
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <div
-            className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-            style={{ backgroundColor: team.logoColor }}
-          >
-            {team.abbreviation}
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+              style={{ backgroundColor: team.logoColor }}
+            >
+              {team.abbreviation}
+            </div>
+            <span className="text-sm font-bold truncate">{team.name}</span>
           </div>
-          <span className="text-sm font-bold truncate">{team.name}</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
@@ -1843,6 +1878,7 @@ function TeamPreview({ team, onClose }: TeamPreviewProps) {
                 <div
                   key={player.id || idx}
                   className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => onNavigateToAthlete?.(player)}
                 >
                   <div className="w-9 h-9 rounded-full bg-primary/80 flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
                     {player.jersey_number}
@@ -1855,7 +1891,7 @@ function TeamPreview({ team, onClose }: TeamPreviewProps) {
                     <span className="text-sm font-semibold text-foreground">
                       {player.statValue} {player.statLabel}
                     </span>
-                    <Icon name="chevron-right" className="w-4 h-4 text-muted-foreground" />
+                    <Icon name="chevronRight" className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
               ))}
@@ -1893,7 +1929,7 @@ function TeamPreview({ team, onClose }: TeamPreviewProps) {
                       {game.teamScore}-{game.opponentScore}
                     </span>
                     <span className="text-xs text-muted-foreground">Week {game.week}</span>
-                    <Icon name="chevron-right" className="w-4 h-4 text-muted-foreground" />
+                    <Icon name="chevronRight" className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
               ))}
@@ -1932,30 +1968,44 @@ function TeamPreview({ team, onClose }: TeamPreviewProps) {
 interface AthletePreviewProps {
   athlete: Athlete & { id?: string }
   onClose: () => void
+  hideHeader?: boolean
+  onNavigateToTeam?: (team: Team) => void
 }
 
-function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
+function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: AthletePreviewProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
+  const athleteTeam = useMemo(() => findTeamById(athlete.team), [athlete.team])
+  const router = useRouter()
+
+  // Generate athlete slug for the full profile link
+  const athleteSlug = athlete.name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim()
 
   return (
-    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
-      {/* Header with close button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
+      {/* Header with close button - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-20">
         {/* Avatar + Name + Team/Position */}
         <div className="px-5 pt-6 pb-4 flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shrink-0">
@@ -1964,7 +2014,16 @@ function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
-              <span className="text-primary font-medium">{teamName}</span>
+              {athleteTeam && onNavigateToTeam ? (
+                <button
+                  onClick={() => onNavigateToTeam(athleteTeam)}
+                  className="text-primary font-medium hover:underline cursor-pointer"
+                >
+                  {teamName}
+                </button>
+              ) : (
+                <span className="text-primary font-medium">{teamName}</span>
+              )}
               <span className="text-border">{"·"}</span>
               <span>{athlete.position}</span>
               <span className="text-border">{"·"}</span>
@@ -1996,48 +2055,73 @@ function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
             {/* Identity section */}
             <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
             <div className="flex flex-col">
-              <IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
-              <IdentityRow label="Position" value={athlete.position} />
-              <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
-              <IdentityRow label="College" value={athlete.college} />
-              <IdentityRow label="Team" value={teamName} isLast />
-            </div>
+<IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
+  <IdentityRow label="Position" value={athlete.position} />
+  <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
+  <IdentityRow label="College" value={athlete.college} />
+  <IdentityRow 
+    label="Team" 
+    value={teamName} 
+    isLast 
+    onClick={athleteTeam && onNavigateToTeam ? () => onNavigateToTeam(athleteTeam) : undefined}
+  />
+  </div>
+  
+  {/* Key Stats */}
+  <div className="mt-8">
+  <div className="flex items-center justify-between mb-4">
+  <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
+  <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
+  2025/26
+  </span>
+  </div>
+  <div className="grid grid-cols-2 gap-3">
+  {keyStats.map((stat) => (
+  <div key={stat.label} className="rounded-lg border border-border p-3">
+  <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
+  <div className="flex items-baseline gap-1">
+  <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
+  {stat.secondary && (
+  <span className="text-xs text-muted-foreground">{stat.secondary}</span>
+  )}
+  </div>
+  {stat.note && (
+  <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
+  )}
+  </div>
+  ))}
+  </div>
+  </div>
+  </div>
+  ) : (
+  <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+  {profileTab} content coming soon.
+  </div>
+  )}
+  </div>
 
-            {/* Key Stats */}
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
-                <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
-                  2025/26
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {keyStats.map((stat) => (
-                  <div key={stat.label} className="rounded-lg border border-border p-3">
-                    <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
-                      {stat.secondary && (
-                        <span className="text-xs text-muted-foreground">{stat.secondary}</span>
-                      )}
-                    </div>
-                    {stat.note && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-            {profileTab} content coming soon.
-          </div>
-        )}
-      </div>
-    </div>
+  {/* Fixed Footer */}
+  <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+  <Button
+  variant="outline"
+  className="flex-1 font-semibold"
+  onClick={() => {
+  // Placeholder for viewing athlete highlights
+  console.log("View highlights:", athlete.name)
+  }}
+  >
+  View Highlights
+  </Button>
+  <Button
+  className="flex-1 font-semibold"
+  onClick={() => router.push(`/athletes/${athleteSlug}`)}
+  >
+  View Full Profile
+  </Button>
+  </div>
+  </div>
   )
-}
+  }
 
 // ---------------------------------------------------------------------------
 // PreviewModule
@@ -2049,22 +2133,40 @@ interface PreviewModuleProps {
   team?: Team
   athlete?: Athlete & { id?: string }
   onClose: () => void
+  // Navigation callbacks for breadcrumb support
+  onNavigateToTeam?: (team: Team) => void
+  onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
+  onNavigateToGame?: (game: Game) => void
+  onNavigateToClip?: (play: PlayData) => void
+  // Hide the internal header (used when wrapped by breadcrumb navigation)
+  hideHeader?: boolean
 }
 
-export function PreviewModule({ play, game, team, athlete, onClose }: PreviewModuleProps) {
+export function PreviewModule({ 
+  play, 
+  game, 
+  team, 
+  athlete, 
+  onClose,
+  onNavigateToTeam,
+  onNavigateToAthlete,
+  onNavigateToGame,
+  onNavigateToClip,
+  hideHeader,
+}: PreviewModuleProps) {
   // If athlete is provided, render AthletePreview
   if (athlete) {
-    return <AthletePreview athlete={athlete} onClose={onClose} />
+    return <AthletePreview athlete={athlete} onClose={onClose} hideHeader={hideHeader} onNavigateToTeam={onNavigateToTeam} />
   }
 
   // If team is provided, render TeamPreview
   if (team) {
-    return <TeamPreview team={team} onClose={onClose} />
+    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} hideHeader={hideHeader} />
   }
 
   // If game is provided, render GamePreview
   if (game) {
-    return <GamePreview game={game} onClose={onClose} />
+    return <GamePreview game={game} onClose={onClose} onNavigateToTeam={onNavigateToTeam} hideHeader={hideHeader} />
   }
 
   // Otherwise render the clip preview (need a play)
@@ -2092,13 +2194,19 @@ export function PreviewModule({ play, game, team, athlete, onClose }: PreviewMod
   const handlePlayerClick = useCallback((playerName: string) => {
   const athlete = getAthleteByName(playerName)
   if (athlete) {
+    // If breadcrumb navigation is available, use it instead of internal state
+    if (onNavigateToAthlete) {
+      onNavigateToAthlete(athlete)
+      return
+    }
     setSelectedAthlete(athlete)
     return
   }
   // Fallback for hardcoded roster players (OL / extra DL) not in athletes-data
   const rosterPlayer = [...OL_PLAYERS, ...EXTRA_DL].find((p) => p.name === playerName)
   if (rosterPlayer) {
-    const synthetic: Athlete = {
+    const synthetic: Athlete & { id: string } = {
+      id: `synthetic-${rosterPlayer.name.toLowerCase().replace(/\s+/g, "-")}`,
       name: rosterPlayer.name,
       team: "DET",
       position: rosterPlayer.position as Athlete["position"],
@@ -2108,9 +2216,13 @@ export function PreviewModule({ play, game, team, athlete, onClose }: PreviewMod
       college: "N/A",
       stats: { passing_yards: 0, passing_tds: 0, rushing_yards: 0, rushing_tds: 0, receiving_yards: 0, receiving_tds: 0, tackles: 0, sacks: 0 },
     }
+    if (onNavigateToAthlete) {
+      onNavigateToAthlete(synthetic)
+      return
+    }
     setSelectedAthlete(synthetic)
   }
-  }, [])
+  }, [onNavigateToAthlete])
 
   // "Open Clip" -- open as unsaved playlist in watch page
   const handleOpenClip = useCallback(() => {
@@ -2127,30 +2239,32 @@ export function PreviewModule({ play, game, team, athlete, onClose }: PreviewMod
     router.push("/watch")
   }, [setWatchItem, router])
 
-  // If an athlete is selected, show their profile instead of the clip view
+// If an athlete is selected, show their profile instead of the clip view
   if (selectedAthlete) {
-    return <AthleteProfileView athlete={selectedAthlete} onBack={() => setSelectedAthlete(null)} />
+  return <AthleteProfileView athlete={selectedAthlete} onBack={() => setSelectedAthlete(null)} onNavigateToTeam={onNavigateToTeam} />
   }
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
-      {/* Fixed Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="text-sm font-bold truncate">Clip {play.playNumber}</span>
-          <span className="text-muted-foreground text-sm shrink-0">|</span>
-          <span className="text-sm text-muted-foreground truncate">{formatGameLabel(play.game)}</span>
+      {/* Fixed Header - hidden when using breadcrumb wrapper */}
+      {!hideHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon name="play" className="w-4 h-4 text-muted-foreground shrink-0" />
+            <span className="text-sm font-bold truncate">Clip {play.playNumber}</span>
+            <span className="text-muted-foreground text-sm shrink-0">|</span>
+            <span className="text-sm text-muted-foreground truncate">{formatGameLabel(play.game)}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <Icon name="close" className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onClose}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
-        >
-          <Icon name="close" className="w-4 h-4" />
-        </Button>
-      </div>
+      )}
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">

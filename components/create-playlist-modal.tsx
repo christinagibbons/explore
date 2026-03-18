@@ -174,7 +174,7 @@ export function CreatePlaylistModal() {
                         <span className="text-muted-foreground">{childItemCount} Items</span>
                       </div>
                       {hoveredFolderId === child.id && (
-                        <Icon name="chevron-right" className="w-5 h-5 text-muted-foreground" />
+                        <Icon name="chevronRight" className="w-5 h-5 text-muted-foreground" />
                       )}
                     </button>
                   )

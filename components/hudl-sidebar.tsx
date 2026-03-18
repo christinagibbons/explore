@@ -10,6 +10,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useCatapultImportContext } from "@/lib/catapult-import-context"
+import { useExploreContextOptional, EXPLORE_VERSION_LABELS, type ExploreVersion } from "@/lib/explore-context"
 import {
   Sidebar,
   SidebarContent,
@@ -124,6 +125,7 @@ export function HudlSidebar({ children }: HudlSidebarProps) {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { activeVersion, setActiveVersion } = useCatapultImportContext()
+  const exploreContext = useExploreContextOptional()
   const pathname = usePathname()
 
   useEffect(() => {
@@ -202,47 +204,34 @@ export function HudlSidebar({ children }: HudlSidebarProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          {/* Catapult Import version selector as nav item */}
-          <SidebarMenuItem>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton tooltip="Catapult Import">
-                  <Icon name="settings" className="w-5 h-5 flex-shrink-0" />
-                  <span>Catapult Import</span>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-56">
-                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Select Version</div>
-                <DropdownMenuItem
-                  onClick={() => setActiveVersion("v1")}
-                  className={activeVersion === "v1" ? "bg-accent" : ""}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${activeVersion === "v1" ? "bg-blue-600" : "bg-muted"}`} />
-                    Version 1
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setActiveVersion("v2")}
-                  className={activeVersion === "v2" ? "bg-accent" : ""}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${activeVersion === "v2" ? "bg-blue-600" : "bg-muted"}`} />
-                    Version 2
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setActiveVersion("v3")}
-                  className={activeVersion === "v3" ? "bg-accent" : ""}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${activeVersion === "v3" ? "bg-blue-600" : "bg-muted"}`} />
-                    Version 3
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
+          {/* Explore Versions selector */}
+          {exploreContext && (
+            <SidebarMenuItem>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton tooltip="Explore Versions">
+                    <Icon name="explore" className="w-5 h-5 flex-shrink-0" />
+                    <span>Explore Versions</span>
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-64">
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Select Version</div>
+                  {(["v1", "v2", "v3"] as ExploreVersion[]).map((version) => (
+                    <DropdownMenuItem
+                      key={version}
+                      onClick={() => exploreContext.setExploreVersion(version)}
+                      className={exploreContext.exploreVersion === version ? "bg-accent" : ""}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${exploreContext.exploreVersion === version ? "bg-blue-600" : "bg-muted"}`} />
+                        {EXPLORE_VERSION_LABELS[version]}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
 
         {/* User Profile Section */}
