@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { VIDEO_POOL } from "@/lib/mock-datasets"
@@ -18,6 +19,7 @@ import { findTeamById, mockClips } from "@/lib/games-context"
 import { mockGames } from "@/lib/mock-games"
 import { getAthletesForTeam } from "@/lib/mock-teams"
 import type { Team } from "@/lib/sports-data"
+import { Play, ChevronRight, ChevronLeft } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1688,8 +1690,11 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
 }
 
 // ---------------------------------------------------------------------------
-// TeamPreview (Team Profile in Preview Module)
+// TeamPreview (Team Profile in Preview Module) - Figma Design Match
 // ---------------------------------------------------------------------------
+
+const TEAM_PROFILE_TABS = ["Overview", "Games", "Players", "Events", "Report"] as const
+type TeamProfileTab = typeof TEAM_PROFILE_TABS[number]
 
 interface TeamPreviewProps {
   team: Team
@@ -1699,16 +1704,51 @@ interface TeamPreviewProps {
   hideHeader?: boolean
 }
 
-/** Generate deterministic mock team stats based on team ID */
+/** Generate deterministic mock team identity data based on team ID */
+function generateTeamIdentity(teamId: string, teamName: string) {
+  const h = hashString(teamId)
+  // Generate coach name deterministically
+  const firstNames = ["Mike", "John", "Bill", "Nick", "Andy", "Sean", "Kyle", "Dan", "Kevin", "Matt"]
+  const lastNames = ["Johnson", "Smith", "Williams", "Brown", "Jones", "Davis", "Wilson", "Thomas", "Moore", "Taylor"]
+  const coachName = `${firstNames[h % firstNames.length]} ${lastNames[(h + 3) % lastNames.length]}`
+  
+  // Generate location based on team name
+  const cities = ["Los Angeles, CA", "Dallas, TX", "Miami, FL", "Chicago, IL", "New York, NY", "Denver, CO", "Seattle, WA", "Phoenix, AZ", "Atlanta, GA", "Detroit, MI"]
+  const city = cities[h % cities.length]
+  
+  // Generate stadium name
+  const stadiumPrefixes = ["Memorial", "Victory", "Heritage", "National", "United", "State", "Metro", "Central"]
+  const stadiumSuffixes = ["Stadium", "Field", "Arena", "Bowl", "Coliseum"]
+  const stadium = `${stadiumPrefixes[h % stadiumPrefixes.length]} ${stadiumSuffixes[(h + 2) % stadiumSuffixes.length]}`
+  
+  return {
+    fullName: teamName,
+    headCoach: coachName,
+    conference: h % 2 === 0 ? "AFC" : "NFC",
+    location: city,
+    homeArena: stadium,
+  }
+}
+
+/** Generate deterministic mock team stats based on team ID (football-specific) */
 function generateTeamStats(teamId: string) {
   const h = hashString(teamId)
   return {
-    pointsFor: 200 + (h % 150),
-    pointsAgainst: 180 + ((h + 7) % 140),
-    offenseRank: 1 + (h % 20),
-    defenseRank: 1 + ((h + 13) % 20),
-    passingYPG: 200 + (h % 120),
-    rushingYPG: 80 + ((h + 5) % 80),
+    passingYPG: (180 + (h % 120)).toFixed(1),
+    passingRank: `Top ${10 + (h % 20)}%`,
+    rushingYPG: (90 + (h % 60)).toFixed(1),
+    rushingRank: h % 3 === 0 ? "Above D1 Average" : "Below D1 Average (low risk)",
+    thirdDownPct: (35 + (h % 30)).toFixed(1),
+    thirdDownRank: `Elite (top ${5 + (h % 15)}%)`,
+    sacks: 25 + (h % 25),
+    sacksSecondary: `/ ${35 + (h % 15)}`,
+    sacksNote: `${20 + (h % 15)}.${h % 10}% sack rate`,
+    turnovers: 10 + (h % 15),
+    turnoversSecondary: `/ ${20 + (h % 10)}`,
+    turnoversNote: `${10 + (h % 8)}.0% turnover rate`,
+    ppg: (20 + (h % 15)).toFixed(1),
+    ppgSecondary: `/ ${25 + (h % 10)}`,
+    ppgNote: `${h % 2 === 0 ? "+" : ""}${(h % 8) - 4}.${h % 10} point differential`,
     record: {
       wins: 6 + (h % 8),
       losses: 3 + ((h + 3) % 7),
@@ -1716,8 +1756,65 @@ function generateTeamStats(teamId: string) {
   }
 }
 
+/** Generate deterministic mock highlights for team */
+function generateTeamHighlights(teamId: string) {
+  const h = hashString(teamId)
+  const opponents = ["Texas A&M", "Purdue", "Minnesota", "Michigan", "UMBC", "Ohio State", "Alabama", "Georgia"]
+  return Array.from({ length: 5 }, (_, i) => ({
+    id: `highlight-${teamId}-${i}`,
+    title: `Double Double vs ${opponents[(h + i) % opponents.length]}`,
+    reactions: (h + i) % 2 === 0 ? `${1 + ((h + i) % 3)} reacted` : null,
+    views: `${10 + ((h + i * 3) % 30)} views`,
+    date: `Jan ${(3 + i * 2) % 28 || 1} 2025`,
+    thumbnail: `/placeholder.svg?height=120&width=180`,
+  }))
+}
+
+/** Generate deterministic mock playlists for team */
+function generateTeamPlaylists(teamId: string) {
+  const h = hashString(teamId)
+  const playlistNames = [
+    "Automatic Video Report",
+    "Best Actions",
+    "Touchdowns",
+    "Interceptions",
+    "Sacks",
+    "Big Plays",
+    "Red Zone",
+    "Third Down Conversions",
+  ]
+  return playlistNames.slice(0, 6).map((name, i) => ({
+    id: `playlist-${teamId}-${i}`,
+    name,
+    clips: 100 + ((h + i * 17) % 150),
+  }))
+}
+
+/** Generate detailed game stats for recent games */
+function generateGameStats(gameId: string) {
+  const h = hashString(gameId)
+  return {
+    passYds: 200 + (h % 200),
+    rushYds: 80 + (h % 120),
+    totalYds: 280 + (h % 250),
+    firstDowns: 15 + (h % 15),
+    thirdDown: `${4 + (h % 6)}/${10 + (h % 6)}`,
+    thirdDownPct: ((4 + (h % 6)) / (10 + (h % 6)) * 100).toFixed(1),
+    turnovers: h % 4,
+    sacks: h % 5,
+    penalties: 3 + (h % 8),
+    penaltyYds: 25 + (h % 60),
+    timeOfPoss: `${28 + (h % 8)}:${(h % 60).toString().padStart(2, "0")}`,
+  }
+}
+
 function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hideHeader }: TeamPreviewProps) {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState<TeamProfileTab>("Overview")
+  const highlightsRef = useRef<HTMLDivElement>(null)
+
+  // Get team identity (deterministic mock data)
+  const identity = useMemo(() => generateTeamIdentity(team.id, team.name), [team.id, team.name])
 
   // Get team stats (deterministic mock data)
   const stats = useMemo(() => generateTeamStats(team.id), [team.id])
@@ -1725,46 +1822,57 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
   // Get athletes for this team
   const teamAthletes = useMemo(() => getAthletesForTeam(team.id), [team.id])
 
-  // Get key players (top 4 by position priority: QB, RB, WR, DE/LB)
-  const keyPlayers = useMemo(() => {
-    const positionPriority = ["QB", "RB", "WR", "TE", "DE", "LB", "CB", "S"]
+  // Get highlights
+  const highlights = useMemo(() => generateTeamHighlights(team.id), [team.id])
+
+  // Get playlists
+  const playlists = useMemo(() => generateTeamPlaylists(team.id), [team.id])
+
+  // Get top players with position-specific stats
+  const topPlayers = useMemo(() => {
+    const positionPriority = ["QB", "RB", "WR", "TE", "DE", "LB"]
     const sorted = [...teamAthletes].sort((a, b) => {
       const aIdx = positionPriority.indexOf(a.position)
       const bIdx = positionPriority.indexOf(b.position)
       return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
     })
-    return sorted.slice(0, 4).map((athlete) => {
-      // Generate a mock stat based on position
+    return sorted.slice(0, 5).map((athlete) => {
       const h = hashString(athlete.id || athlete.name)
       let statLabel = ""
       let statValue = ""
+      let statUnit = ""
       if (athlete.position === "QB") {
-        statValue = `${2500 + (h % 1500)}`
-        statLabel = "YDS"
+        statValue = ((250 + (h % 100)) / 100).toFixed(2)
+        statLabel = "Pass YPG"
+        statUnit = ""
       } else if (athlete.position === "RB") {
-        statValue = `${600 + (h % 700)}`
-        statLabel = "YDS"
+        statValue = ((80 + (h % 50)) / 10).toFixed(2)
+        statLabel = "Rush YPG"
+        statUnit = ""
       } else if (athlete.position === "WR" || athlete.position === "TE") {
-        statValue = `${400 + (h % 800)}`
-        statLabel = "YDS"
+        statValue = ((60 + (h % 50)) / 10).toFixed(2)
+        statLabel = "Rec YPG"
+        statUnit = ""
       } else if (athlete.position === "DE" || athlete.position === "DT") {
-        statValue = `${4 + (h % 10)}`
-        statLabel = "SACKS"
+        statValue = ((10 + (h % 10)) / 10).toFixed(2)
+        statLabel = "Sacks / Game"
+        statUnit = ""
       } else {
-        statValue = `${40 + (h % 80)}`
-        statLabel = "TKL"
+        statValue = ((40 + (h % 40)) / 10).toFixed(2)
+        statLabel = "Tackles / Game"
+        statUnit = ""
       }
-      return { ...athlete, statValue, statLabel }
+      return { ...athlete, statValue, statLabel, statUnit }
     })
   }, [teamAthletes])
 
-  // Get recent games for this team (up to 3)
+  // Get recent games for this team (up to 5)
   const recentGames = useMemo(() => {
     return mockGames
       .filter((g) => g.homeTeamId === team.id || g.awayTeamId === team.id)
       .filter((g) => g.status === "final" && g.score)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 3)
+      .slice(0, 5)
       .map((game) => {
         const isHome = game.homeTeamId === team.id
         const teamScore = isHome ? game.score!.home : game.score!.away
@@ -1772,37 +1880,68 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
         const opponentId = isHome ? game.awayTeamId : game.homeTeamId
         const opponent = findTeamById(opponentId)
         const won = teamScore > opponentScore
+        const gameStats = generateGameStats(game.id)
         return {
           id: game.id,
-          gameData: game, // Include full game object for navigation
+          gameData: game,
+          date: new Date(game.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          competition: game.gameType === "playoff" ? "Playoff" : `Week ${game.week}`,
           opponent: opponent?.name || "Unknown",
           opponentAbbr: opponent?.abbreviation || "UNK",
+          opponentColor: opponent?.logoColor || "#666",
           teamScore,
           opponentScore,
           won,
-          week: game.week,
+          score: `${won ? "W" : "L"} ${teamScore}-${opponentScore}`,
+          stats: gameStats,
         }
       })
   }, [team.id])
 
-  // Calculate PPG values
-  const gamesPlayed = stats.record.wins + stats.record.losses
-  const ppgFor = gamesPlayed > 0 ? (stats.pointsFor / gamesPlayed).toFixed(1) : "0.0"
-  const ppgAgainst = gamesPlayed > 0 ? (stats.pointsAgainst / gamesPlayed).toFixed(1) : "0.0"
+  // Scroll handlers for highlights carousel
+  const scrollHighlights = (direction: "left" | "right") => {
+    if (highlightsRef.current) {
+      const scrollAmount = 200
+      highlightsRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      })
+    }
+  }
+
+  // Find conference and division info
+  const conferenceInfo = useMemo(() => {
+    // For NFL teams, find conference info from sports data
+    const h = hashString(team.id)
+    const divisions = ["North", "South", "East", "West"]
+    const conferences = ["AFC", "NFC"]
+    return {
+      conference: conferences[h % 2],
+      division: divisions[h % 4],
+      league: team.id.startsWith("hs-") ? "High School Football" : team.id.length > 3 ? "NCAA Division 1" : "NFL",
+    }
+  }, [team.id])
 
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
       {/* Fixed Header - hidden when using breadcrumb wrapper */}
       {!hideHeader && (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
               style={{ backgroundColor: team.logoColor }}
             >
               {team.abbreviation}
             </div>
-            <span className="text-sm font-bold truncate">{team.name}</span>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-foreground truncate">{team.name}</h2>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="text-primary">{conferenceInfo.conference} {conferenceInfo.division}</span>
+                <span className="text-border">{"·"}</span>
+                <span>{conferenceInfo.league}</span>
+              </div>
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -1815,141 +1954,303 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
         </div>
       )}
 
+      {/* Tab Navigation */}
+      <div className="px-4 py-2 flex items-center gap-1.5 border-b border-border shrink-0 overflow-x-auto">
+        {TEAM_PROFILE_TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
+              activeTab === tab
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {/* Team Identity Card */}
-        <div className="px-4 pt-4">
-          <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
-            <div className="flex items-center gap-4">
-              <div
-                className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xl font-bold shrink-0"
-                style={{ backgroundColor: team.logoColor }}
-              >
-                {team.abbreviation}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold text-foreground">{team.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {stats.record.wins}-{stats.record.losses} Record
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Team Stats Section */}
-        <div className="px-4 pt-5">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Team Stats</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {/* Points For */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Points For</p>
-              <p className="text-xl font-bold text-foreground">{stats.pointsFor}</p>
-              <p className="text-xs text-muted-foreground">{ppgFor} PPG</p>
-            </div>
-            {/* Points Against */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Points Against</p>
-              <p className="text-xl font-bold text-foreground">{stats.pointsAgainst}</p>
-              <p className="text-xs text-muted-foreground">{ppgAgainst} PPG</p>
-            </div>
-            {/* Offense Rank */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Offense Rank</p>
-              <p className="text-xl font-bold text-foreground">#{stats.offenseRank}</p>
-            </div>
-            {/* Defense Rank */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Defense Rank</p>
-              <p className="text-xl font-bold text-foreground">#{stats.defenseRank}</p>
-            </div>
-            {/* Passing */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Passing</p>
-              <p className="text-xl font-bold text-foreground">{stats.passingYPG}</p>
-              <p className="text-xs text-muted-foreground">YDS/Game</p>
-            </div>
-            {/* Rushing */}
-            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Rushing</p>
-              <p className="text-xl font-bold text-foreground">{stats.rushingYPG}</p>
-              <p className="text-xs text-muted-foreground">YDS/Game</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Key Players Section */}
-        {keyPlayers.length > 0 && (
-          <div className="px-4 pt-5">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Key Players</h4>
-            <div className="space-y-2">
-              {keyPlayers.map((player, idx) => (
-                <div
-                  key={player.id || idx}
-                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => onNavigateToAthlete?.(player)}
-                >
-                  <div className="w-9 h-9 rounded-full bg-primary/80 flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
-                    {player.jersey_number}
+        {activeTab === "Overview" && (
+          <>
+            {/* Two-column layout: Identity and Key Stats */}
+            <div className="px-4 pt-4 grid grid-cols-2 gap-4">
+              {/* Identity Section */}
+              <div>
+                <h3 className="text-sm font-bold text-foreground mb-3">Identity</h3>
+                <div className="space-y-0">
+                  <div className="flex justify-between py-2 border-b border-border/50">
+                    <span className="text-xs text-muted-foreground">Team Name</span>
+                    <span className="text-xs text-foreground font-medium text-right">{identity.fullName}</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{player.name}</p>
-                    <p className="text-xs text-muted-foreground">{player.position}</p>
+                  <div className="flex justify-between py-2 border-b border-border/50">
+                    <span className="text-xs text-muted-foreground">Head Coach</span>
+                    <span className="text-xs text-primary font-medium">{identity.headCoach}</span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm font-semibold text-foreground">
-                      {player.statValue} {player.statLabel}
-                    </span>
-                    <Icon name="chevronRight" className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex justify-between py-2 border-b border-border/50">
+                    <span className="text-xs text-muted-foreground">Conference</span>
+                    <span className="text-xs text-primary font-medium">{conferenceInfo.conference}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-border/50">
+                    <span className="text-xs text-muted-foreground">Location</span>
+                    <span className="text-xs text-foreground font-medium">{identity.location}</span>
+                  </div>
+                  <div className="flex justify-between py-2">
+                    <span className="text-xs text-muted-foreground">Home Arena</span>
+                    <span className="text-xs text-foreground font-medium">{identity.homeArena}</span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Key Stats Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-foreground">Key Stats</h3>
+                  <span className="text-xs text-muted-foreground border border-border rounded px-2 py-0.5">2025/26</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Passing YPG */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">Passing YPG</p>
+                    <p className="text-lg font-bold text-foreground">{stats.passingYPG}</p>
+                    <p className="text-[9px] text-muted-foreground">{stats.passingRank}</p>
+                  </div>
+                  {/* Rushing YPG */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">Rushing YPG</p>
+                    <p className="text-lg font-bold text-foreground">{stats.rushingYPG}</p>
+                    <p className="text-[9px] text-muted-foreground">{stats.rushingRank}</p>
+                  </div>
+                  {/* 3rd Down % */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">3rd Down %</p>
+                    <p className="text-lg font-bold text-foreground">{stats.thirdDownPct}%</p>
+                    <p className="text-[9px] text-muted-foreground">{stats.thirdDownRank}</p>
+                  </div>
+                  {/* Sacks */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">Sacks</p>
+                    <div className="flex items-baseline gap-0.5">
+                      <p className="text-lg font-bold text-foreground">{stats.sacks}</p>
+                      <p className="text-xs text-muted-foreground">{stats.sacksSecondary}</p>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">{stats.sacksNote}</p>
+                  </div>
+                  {/* Turnovers */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">Turnovers</p>
+                    <div className="flex items-baseline gap-0.5">
+                      <p className="text-lg font-bold text-foreground">{stats.turnovers}</p>
+                      <p className="text-xs text-muted-foreground">{stats.turnoversSecondary}</p>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">{stats.turnoversNote}</p>
+                  </div>
+                  {/* PPG */}
+                  <div className="rounded-lg border border-border p-2">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">PPG</p>
+                    <div className="flex items-baseline gap-0.5">
+                      <p className="text-lg font-bold text-foreground">{stats.ppg}</p>
+                      <p className="text-xs text-muted-foreground">{stats.ppgSecondary}</p>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">{stats.ppgNote}</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Team Highlights */}
+            <div className="px-4 pt-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground">Team Highlights</h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => scrollHighlights("left")}
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollHighlights("right")}
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  <button className="text-xs text-muted-foreground hover:text-foreground ml-2">View All</button>
+                </div>
+              </div>
+              <div
+                ref={highlightsRef}
+                className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {highlights.map((highlight) => (
+                  <div key={highlight.id} className="shrink-0 w-40">
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-muted mb-2 group cursor-pointer">
+                      <img
+                        src={highlight.thumbnail}
+                        alt={highlight.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                          <Play className="w-4 h-4 text-foreground fill-foreground ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs font-medium text-foreground truncate">{highlight.title}</p>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                      {highlight.reactions && (
+                        <>
+                          <span className="text-amber-500">{"*"}</span>
+                          <span>{highlight.reactions}</span>
+                          <span>{"·"}</span>
+                        </>
+                      )}
+                      <span>{highlight.views}</span>
+                      <span>{"·"}</span>
+                      <span>{highlight.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Playlists */}
+            <div className="px-4 pt-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-foreground">Playlists</h3>
+                <button className="text-xs text-muted-foreground hover:text-foreground border border-border rounded px-2 py-1">
+                  Create Playlist
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {playlists.map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <Play className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs font-medium text-foreground">{playlist.name}</span>
+                    <span className="text-xs text-muted-foreground">{playlist.clips} clips</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Games Table */}
+            {recentGames.length > 0 && (
+              <div className="px-4 pt-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-foreground">Recent Games</h3>
+                  <button className="text-xs text-muted-foreground hover:text-foreground">View All</button>
+                </div>
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableHead className="text-[10px] font-semibold h-8 px-2"></TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2">Date</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2">Competition</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2">Opponent</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2">Score</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2 text-right">Pass</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2 text-right">Rush</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2 text-right">TO</TableHead>
+                        <TableHead className="text-[10px] font-semibold h-8 px-2 text-right">3rd%</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recentGames.map((game) => (
+                        <TableRow
+                          key={game.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => onNavigateToGame?.(game.gameData)}
+                        >
+                          <TableCell className="px-2 py-2">
+                            <button className="w-5 h-5 rounded-full border border-border flex items-center justify-center hover:bg-muted">
+                              <Play className="w-2.5 h-2.5 text-muted-foreground ml-0.5" />
+                            </button>
+                          </TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-muted-foreground">{game.date}</TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-muted-foreground">{game.competition}</TableCell>
+                          <TableCell className="px-2 py-2">
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+                                style={{ backgroundColor: game.opponentColor }}
+                              >
+                                {game.opponentAbbr.slice(0, 2)}
+                              </div>
+                              <span className="text-[10px] text-foreground">{game.opponentAbbr}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-2 py-2">
+                            <span className={cn(
+                              "text-[10px] font-semibold",
+                              game.won ? "text-emerald-500" : "text-red-500"
+                            )}>
+                              {game.score}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-right tabular-nums text-primary">{game.stats.passYds}</TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-right tabular-nums text-primary">{game.stats.rushYds}</TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-right tabular-nums">{game.stats.turnovers}</TableCell>
+                          <TableCell className="text-[10px] px-2 py-2 text-right tabular-nums text-primary">{game.stats.thirdDownPct}%</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Top Players */}
+            {topPlayers.length > 0 && (
+              <div className="px-4 pt-5 pb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-foreground">Top Players</h3>
+                  <button className="text-xs text-muted-foreground hover:text-foreground border border-border rounded px-2 py-1">
+                    View Full Team
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {topPlayers.map((player, idx) => (
+                    <div
+                      key={player.id || idx}
+                      className="rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => onNavigateToAthlete?.(player)}
+                    >
+                      <p className="text-[10px] font-semibold text-primary mb-1">{player.statLabel}</p>
+                      <p className="text-xl font-bold text-foreground">{player.statValue}</p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold text-muted-foreground shrink-0">
+                          {player.name.split(" ").map((n) => n[0]).join("")}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-foreground truncate">{player.name.split(" ").pop()}</p>
+                          <p className="text-[9px] text-muted-foreground">{player.position} · #{player.jersey_number}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Recent Games Section */}
-        {recentGames.length > 0 && (
-          <div className="px-4 pt-5 pb-6">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Recent Games</h4>
-            <div className="space-y-2">
-              {recentGames.map((game) => (
-                <div
-                  key={game.id}
-                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => onNavigateToGame?.(game.gameData)}
-                >
-                  <div
-                    className={cn(
-                      "w-7 h-7 rounded flex items-center justify-center text-xs font-bold shrink-0",
-                      game.won
-                        ? "bg-emerald-500/20 text-emerald-500"
-                        : "bg-red-500/20 text-red-500"
-                    )}
-                  >
-                    {game.won ? "W" : "L"}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      vs {game.opponentAbbr}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-sm font-semibold text-foreground tabular-nums">
-                      {game.teamScore}-{game.opponentScore}
-                    </span>
-                    <span className="text-xs text-muted-foreground">Week {game.week}</span>
-                    <Icon name="chevronRight" className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                </div>
-              ))}
-            </div>
+        {activeTab !== "Overview" && (
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            {activeTab} content coming soon.
           </div>
         )}
       </div>
 
       {/* Fixed Footer */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex items-center gap-2 shrink-0">
         <Button
           variant="outline"
           className="flex-1 font-semibold"
