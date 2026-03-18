@@ -52,20 +52,25 @@ interface GamesContextValue {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: Find team by ID across all leagues/conferences
+// Helper: Find team by ID or abbreviation across all leagues/conferences
 // ---------------------------------------------------------------------------
 
 function findTeamById(teamId: string): Team | undefined {
+  const normalizedId = teamId.toLowerCase()
   for (const league of Object.values(sportsData)) {
     for (const conference of league.conferences) {
-      // Check direct teams
-      const directTeam = conference.teams.find((t) => t.id === teamId)
+      // Check direct teams - match by id or abbreviation (case-insensitive)
+      const directTeam = conference.teams.find(
+        (t) => t.id === normalizedId || t.abbreviation?.toLowerCase() === normalizedId
+      )
       if (directTeam) return directTeam
 
       // Check subdivisions
       if (conference.subdivisions) {
         for (const subdivision of conference.subdivisions) {
-          const subTeam = subdivision.teams.find((t) => t.id === teamId)
+          const subTeam = subdivision.teams.find(
+            (t) => t.id === normalizedId || t.abbreviation?.toLowerCase() === normalizedId
+          )
           if (subTeam) return subTeam
         }
       }
