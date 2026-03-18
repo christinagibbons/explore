@@ -13,6 +13,8 @@ import type { GameLeague } from "@/types/game"
 interface TeamsModuleProps {
   selectedLeagues: GameLeague[]
   selectedSeason: string | null
+  onClickTeam?: (team: Team) => void
+  activeTeamId?: string
 }
 
 // Map GameLeague to sports-data League
@@ -32,9 +34,25 @@ const leagueDisplayNames: Record<League, string> = {
 // ---------------------------------------------------------------------------
 // Team Tile Component
 // ---------------------------------------------------------------------------
-function TeamTile({ team }: { team: Team }) {
+function TeamTile({ 
+  team, 
+  onClick, 
+  isActive 
+}: { 
+  team: Team
+  onClick?: () => void
+  isActive?: boolean
+}) {
   return (
-    <div className="flex items-center gap-3 px-3 py-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+    <div 
+      className={cn(
+        "flex items-center gap-3 px-3 py-3 rounded-lg transition-colors cursor-pointer",
+        isActive 
+          ? "bg-primary/10 ring-1 ring-primary" 
+          : "bg-muted/30 hover:bg-muted/50"
+      )}
+      onClick={onClick}
+    >
       <div
         className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
         style={{ backgroundColor: team.logoColor }}
@@ -52,7 +70,17 @@ function TeamTile({ team }: { team: Team }) {
 // ---------------------------------------------------------------------------
 // Division Section Component (for NFL subdivisions)
 // ---------------------------------------------------------------------------
-function DivisionSection({ division, searchQuery }: { division: Conference; searchQuery: string }) {
+function DivisionSection({ 
+  division, 
+  searchQuery,
+  onClickTeam,
+  activeTeamId,
+}: { 
+  division: Conference
+  searchQuery: string
+  onClickTeam?: (team: Team) => void
+  activeTeamId?: string
+}) {
   const filteredTeams = division.teams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,7 +96,12 @@ function DivisionSection({ division, searchQuery }: { division: Conference; sear
       </h5>
       <div className="grid grid-cols-4 gap-2">
         {filteredTeams.map((team) => (
-          <TeamTile key={team.id} team={team} />
+          <TeamTile 
+            key={team.id} 
+            team={team} 
+            onClick={() => onClickTeam?.(team)}
+            isActive={activeTeamId === team.id}
+          />
         ))}
       </div>
     </div>
@@ -82,10 +115,14 @@ function ConferenceSection({
   conference,
   searchQuery,
   defaultExpanded = true,
+  onClickTeam,
+  activeTeamId,
 }: {
   conference: Conference
   searchQuery: string
   defaultExpanded?: boolean
+  onClickTeam?: (team: Team) => void
+  activeTeamId?: string
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
@@ -154,6 +191,8 @@ function ConferenceSection({
                 key={subdivision.id}
                 division={subdivision}
                 searchQuery={searchQuery}
+                onClickTeam={onClickTeam}
+                activeTeamId={activeTeamId}
               />
             ))
           ) : (
@@ -161,7 +200,12 @@ function ConferenceSection({
             filteredDirectTeams.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
                 {filteredDirectTeams.map((team) => (
-                  <TeamTile key={team.id} team={team} />
+                  <TeamTile 
+                    key={team.id} 
+                    team={team} 
+                    onClick={() => onClickTeam?.(team)}
+                    isActive={activeTeamId === team.id}
+                  />
                 ))}
               </div>
             )
@@ -179,10 +223,14 @@ function LeagueSection({
   league,
   conferences,
   searchQuery,
+  onClickTeam,
+  activeTeamId,
 }: {
   league: League
   conferences: Conference[]
   searchQuery: string
+  onClickTeam?: (team: Team) => void
+  activeTeamId?: string
 }) {
   // Count total teams across all conferences
   const totalTeams = useMemo(() => {
@@ -232,6 +280,8 @@ function LeagueSection({
             key={conference.id}
             conference={conference}
             searchQuery={searchQuery}
+            onClickTeam={onClickTeam}
+            activeTeamId={activeTeamId}
           />
         ))}
       </div>
@@ -242,7 +292,7 @@ function LeagueSection({
 // ---------------------------------------------------------------------------
 // Main TeamsModule Component
 // ---------------------------------------------------------------------------
-export function TeamsModule({ selectedLeagues, selectedSeason }: TeamsModuleProps) {
+export function TeamsModule({ selectedLeagues, selectedSeason, onClickTeam, activeTeamId }: TeamsModuleProps) {
   const [searchQuery, setSearchQuery] = useState("")
 
   // Get leagues to display based on filter
@@ -336,6 +386,8 @@ export function TeamsModule({ selectedLeagues, selectedSeason }: TeamsModuleProp
               league={league}
               conferences={sportsData[league].conferences}
               searchQuery={searchQuery}
+              onClickTeam={onClickTeam}
+              activeTeamId={activeTeamId}
             />
           ))}
         </div>

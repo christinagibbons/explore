@@ -15,6 +15,9 @@ import type { Athlete } from "@/types/athlete"
 import type { ClipData } from "@/types/library"
 import type { Game } from "@/types/game"
 import { findTeamById, mockClips } from "@/lib/games-context"
+import { mockGames } from "@/lib/mock-games"
+import { getAthletesForTeam } from "@/lib/mock-teams"
+import type { Team } from "@/lib/sports-data"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1647,16 +1650,418 @@ function GamePreview({ game, onClose }: GamePreviewProps) {
 }
 
 // ---------------------------------------------------------------------------
+// TeamPreview (Team Profile in Preview Module)
+// ---------------------------------------------------------------------------
+
+interface TeamPreviewProps {
+  team: Team
+  onClose: () => void
+}
+
+/** Generate deterministic mock team stats based on team ID */
+function generateTeamStats(teamId: string) {
+  const h = hashString(teamId)
+  return {
+    pointsFor: 200 + (h % 150),
+    pointsAgainst: 180 + ((h + 7) % 140),
+    offenseRank: 1 + (h % 20),
+    defenseRank: 1 + ((h + 13) % 20),
+    passingYPG: 200 + (h % 120),
+    rushingYPG: 80 + ((h + 5) % 80),
+    record: {
+      wins: 6 + (h % 8),
+      losses: 3 + ((h + 3) % 7),
+    },
+  }
+}
+
+function TeamPreview({ team, onClose }: TeamPreviewProps) {
+  const router = useRouter()
+
+  // Get team stats (deterministic mock data)
+  const stats = useMemo(() => generateTeamStats(team.id), [team.id])
+
+  // Get athletes for this team
+  const teamAthletes = useMemo(() => getAthletesForTeam(team.id), [team.id])
+
+  // Get key players (top 4 by position priority: QB, RB, WR, DE/LB)
+  const keyPlayers = useMemo(() => {
+    const positionPriority = ["QB", "RB", "WR", "TE", "DE", "LB", "CB", "S"]
+    const sorted = [...teamAthletes].sort((a, b) => {
+      const aIdx = positionPriority.indexOf(a.position)
+      const bIdx = positionPriority.indexOf(b.position)
+      return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
+    })
+    return sorted.slice(0, 4).map((athlete) => {
+      // Generate a mock stat based on position
+      const h = hashString(athlete.id || athlete.name)
+      let statLabel = ""
+      let statValue = ""
+      if (athlete.position === "QB") {
+        statValue = `${2500 + (h % 1500)}`
+        statLabel = "YDS"
+      } else if (athlete.position === "RB") {
+        statValue = `${600 + (h % 700)}`
+        statLabel = "YDS"
+      } else if (athlete.position === "WR" || athlete.position === "TE") {
+        statValue = `${400 + (h % 800)}`
+        statLabel = "YDS"
+      } else if (athlete.position === "DE" || athlete.position === "DT") {
+        statValue = `${4 + (h % 10)}`
+        statLabel = "SACKS"
+      } else {
+        statValue = `${40 + (h % 80)}`
+        statLabel = "TKL"
+      }
+      return { ...athlete, statValue, statLabel }
+    })
+  }, [teamAthletes])
+
+  // Get recent games for this team (up to 3)
+  const recentGames = useMemo(() => {
+    return mockGames
+      .filter((g) => g.homeTeamId === team.id || g.awayTeamId === team.id)
+      .filter((g) => g.status === "final" && g.score)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3)
+      .map((game) => {
+        const isHome = game.homeTeamId === team.id
+        const teamScore = isHome ? game.score!.home : game.score!.away
+        const opponentScore = isHome ? game.score!.away : game.score!.home
+        const opponentId = isHome ? game.awayTeamId : game.homeTeamId
+        const opponent = findTeamById(opponentId)
+        const won = teamScore > opponentScore
+        return {
+          id: game.id,
+          opponent: opponent?.name || "Unknown",
+          opponentAbbr: opponent?.abbreviation || "UNK",
+          teamScore,
+          opponentScore,
+          won,
+          week: game.week,
+        }
+      })
+  }, [team.id])
+
+  // Calculate PPG values
+  const gamesPlayed = stats.record.wins + stats.record.losses
+  const ppgFor = gamesPlayed > 0 ? (stats.pointsFor / gamesPlayed).toFixed(1) : "0.0"
+  const ppgAgainst = gamesPlayed > 0 ? (stats.pointsAgainst / gamesPlayed).toFixed(1) : "0.0"
+
+  return (
+    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
+      {/* Fixed Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="w-6 h-6 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+            style={{ backgroundColor: team.logoColor }}
+          >
+            {team.abbreviation}
+          </div>
+          <span className="text-sm font-bold truncate">{team.name}</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <Icon name="close" className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-20">
+        {/* Team Identity Card */}
+        <div className="px-4 pt-4">
+          <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
+            <div className="flex items-center gap-4">
+              <div
+                className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xl font-bold shrink-0"
+                style={{ backgroundColor: team.logoColor }}
+              >
+                {team.abbreviation}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-foreground">{team.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {stats.record.wins}-{stats.record.losses} Record
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Team Stats Section */}
+        <div className="px-4 pt-5">
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Team Stats</h4>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Points For */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Points For</p>
+              <p className="text-xl font-bold text-foreground">{stats.pointsFor}</p>
+              <p className="text-xs text-muted-foreground">{ppgFor} PPG</p>
+            </div>
+            {/* Points Against */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Points Against</p>
+              <p className="text-xl font-bold text-foreground">{stats.pointsAgainst}</p>
+              <p className="text-xs text-muted-foreground">{ppgAgainst} PPG</p>
+            </div>
+            {/* Offense Rank */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Offense Rank</p>
+              <p className="text-xl font-bold text-foreground">#{stats.offenseRank}</p>
+            </div>
+            {/* Defense Rank */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Defense Rank</p>
+              <p className="text-xl font-bold text-foreground">#{stats.defenseRank}</p>
+            </div>
+            {/* Passing */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Passing</p>
+              <p className="text-xl font-bold text-foreground">{stats.passingYPG}</p>
+              <p className="text-xs text-muted-foreground">YDS/Game</p>
+            </div>
+            {/* Rushing */}
+            <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Rushing</p>
+              <p className="text-xl font-bold text-foreground">{stats.rushingYPG}</p>
+              <p className="text-xs text-muted-foreground">YDS/Game</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Players Section */}
+        {keyPlayers.length > 0 && (
+          <div className="px-4 pt-5">
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Key Players</h4>
+            <div className="space-y-2">
+              {keyPlayers.map((player, idx) => (
+                <div
+                  key={player.id || idx}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-primary/80 flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0">
+                    {player.jersey_number}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{player.name}</p>
+                    <p className="text-xs text-muted-foreground">{player.position}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold text-foreground">
+                      {player.statValue} {player.statLabel}
+                    </span>
+                    <Icon name="chevron-right" className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recent Games Section */}
+        {recentGames.length > 0 && (
+          <div className="px-4 pt-5 pb-6">
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Recent Games</h4>
+            <div className="space-y-2">
+              {recentGames.map((game) => (
+                <div
+                  key={game.id}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <div
+                    className={cn(
+                      "w-7 h-7 rounded flex items-center justify-center text-xs font-bold shrink-0",
+                      game.won
+                        ? "bg-emerald-500/20 text-emerald-500"
+                        : "bg-red-500/20 text-red-500"
+                    )}
+                  >
+                    {game.won ? "W" : "L"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      vs {game.opponentAbbr}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-semibold text-foreground tabular-nums">
+                      {game.teamScore}-{game.opponentScore}
+                    </span>
+                    <span className="text-xs text-muted-foreground">Week {game.week}</span>
+                    <Icon name="chevron-right" className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed Footer */}
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          className="flex-1 font-semibold"
+          onClick={() => {
+            // Placeholder for viewing team schedule
+            console.log("View schedule:", team.id)
+          }}
+        >
+          View Schedule
+        </Button>
+        <Button
+          className="flex-1 font-semibold"
+          onClick={() => router.push(`/teams/${team.id}`)}
+        >
+          View Full Profile
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AthletePreview (Athlete Profile in Preview Module - standalone)
+// ---------------------------------------------------------------------------
+
+interface AthletePreviewProps {
+  athlete: Athlete & { id?: string }
+  onClose: () => void
+}
+
+function AthletePreview({ athlete, onClose }: AthletePreviewProps) {
+  const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
+  const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
+  const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
+
+  return (
+    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
+      {/* Header with close button */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+        <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onClose}
+          className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <Icon name="close" className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Avatar + Name + Team/Position */}
+        <div className="px-5 pt-6 pb-4 flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shrink-0">
+            {athlete.name.split(" ").map((n) => n[0]).join("")}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
+              <span className="text-primary font-medium">{teamName}</span>
+              <span className="text-border">{"·"}</span>
+              <span>{athlete.position}</span>
+              <span className="text-border">{"·"}</span>
+              <span>#{athlete.jersey_number}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile tabs */}
+        <div className="px-5 pb-4 flex items-center gap-1.5 overflow-x-auto">
+          {PROFILE_TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setProfileTab(tab)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
+                profileTab === tab
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {profileTab === "Overview" ? (
+          <div className="px-5 pb-6">
+            {/* Identity section */}
+            <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
+            <div className="flex flex-col">
+              <IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
+              <IdentityRow label="Position" value={athlete.position} />
+              <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
+              <IdentityRow label="College" value={athlete.college} />
+              <IdentityRow label="Team" value={teamName} isLast />
+            </div>
+
+            {/* Key Stats */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
+                <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
+                  2025/26
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {keyStats.map((stat) => (
+                  <div key={stat.label} className="rounded-lg border border-border p-3">
+                    <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
+                      {stat.secondary && (
+                        <span className="text-xs text-muted-foreground">{stat.secondary}</span>
+                      )}
+                    </div>
+                    {stat.note && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            {profileTab} content coming soon.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // PreviewModule
 // ---------------------------------------------------------------------------
 
 interface PreviewModuleProps {
   play?: PlayData
   game?: Game
+  team?: Team
+  athlete?: Athlete & { id?: string }
   onClose: () => void
 }
 
-export function PreviewModule({ play, game, onClose }: PreviewModuleProps) {
+export function PreviewModule({ play, game, team, athlete, onClose }: PreviewModuleProps) {
+  // If athlete is provided, render AthletePreview
+  if (athlete) {
+    return <AthletePreview athlete={athlete} onClose={onClose} />
+  }
+
+  // If team is provided, render TeamPreview
+  if (team) {
+    return <TeamPreview team={team} onClose={onClose} />
+  }
+
   // If game is provided, render GamePreview
   if (game) {
     return <GamePreview game={game} onClose={onClose} />

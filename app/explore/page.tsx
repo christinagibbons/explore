@@ -7,6 +7,7 @@ import { FiltersModule } from "@/components/filters-module"
 import { GamesFiltersModule } from "@/components/games-filters-module"
 import { GamesModule } from "@/components/games-module"
 import { TeamsModule } from "@/components/teams-module"
+import { AthletesModule } from "@/components/athletes-module"
 import { PreviewModule } from "@/components/preview-module"
 import { getAllUniqueClips } from "@/lib/mock-datasets"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
@@ -21,6 +22,8 @@ import { cn } from "@/lib/utils"
 import type { ClipData } from "@/types/library"
 import type { PlayData } from "@/lib/mock-datasets"
 import type { Game, GameLeague } from "@/types/game"
+import type { Team } from "@/lib/sports-data"
+import type { Athlete } from "@/types/athlete"
 import { useExploreContext } from "@/lib/explore-context"
 
 const exploreTabs = [
@@ -28,6 +31,7 @@ const exploreTabs = [
   // { value: "practice", label: "Practice" }, // Hidden for now
   { value: "games", label: "Games" },
   { value: "teams", label: "Teams" },
+  { value: "athletes", label: "Athletes" },
 ] as const
 
 type ExploreTab = (typeof exploreTabs)[number]["value"]
@@ -96,6 +100,8 @@ export default function ExplorePage() {
   const [activeTab, setActiveTab] = useState<ExploreTab>("clips")
   const [previewPlay, setPreviewPlay] = useState<PlayData | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
+  const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
+  const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
   const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
@@ -122,10 +128,10 @@ export default function ExplorePage() {
   // Calculate games filter count
   const gamesFilterCount = selectedLeagues.length + (selectedSeason ? 1 : 0)
 
-  // Expand/collapse the preview panel when previewPlay or previewGame changes
+  // Expand/collapse the preview panel when previewPlay, previewGame, previewTeam, or previewAthlete changes
   // Mutual exclusion: opening preview closes filters, closing preview reopens filters
   useEffect(() => {
-    if (previewPlay || previewGame) {
+    if (previewPlay || previewGame || previewTeam || previewAthlete) {
       // Resize to 50% so grid and preview share space equally
       previewPanelRef.current?.resize(50)
       setShowFilters(false)
@@ -133,22 +139,42 @@ export default function ExplorePage() {
       previewPanelRef.current?.collapse()
       setShowFilters(true)
     }
-  }, [previewPlay, previewGame])
+  }, [previewPlay, previewGame, previewTeam, previewAthlete])
 
-  // When clicking a game, close any open clip preview and vice versa
+  // When clicking a game, close any open clip/team/athlete preview and vice versa
   const handleGameClick = (game: Game) => {
     setPreviewPlay(null)
+    setPreviewTeam(null)
+    setPreviewAthlete(null)
     setPreviewGame(game)
   }
 
   const handleClipClick = (play: PlayData) => {
     setPreviewGame(null)
+    setPreviewTeam(null)
+    setPreviewAthlete(null)
     setPreviewPlay(play)
+  }
+
+  const handleTeamClick = (team: Team) => {
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    setPreviewAthlete(null)
+    setPreviewTeam(team)
+  }
+
+  const handleAthleteClick = (athlete: Athlete & { id: string }) => {
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    setPreviewTeam(null)
+    setPreviewAthlete(athlete)
   }
 
   const handleClosePreview = () => {
     setPreviewPlay(null)
     setPreviewGame(null)
+    setPreviewTeam(null)
+    setPreviewAthlete(null)
   }
 
   
@@ -170,7 +196,7 @@ export default function ExplorePage() {
 
   // Sync active filter count to context for header badge
   useEffect(() => {
-    const count = (activeTab === "games" || activeTab === "teams") ? gamesFilterCount : activeFilterCount
+    const count = (activeTab === "games" || activeTab === "teams" || activeTab === "athletes") ? gamesFilterCount : activeFilterCount
     setActiveFilterCount(count)
   }, [activeFilterCount, gamesFilterCount, activeTab, setActiveFilterCount])
 
@@ -196,8 +222,8 @@ export default function ExplorePage() {
             onExpand={() => setShowFilters(true)}
           >
             <div className="h-full pl-3 py-3">
-              {activeTab === "games" || activeTab === "teams" ? (
-                <GamesFiltersModule
+{activeTab === "games" || activeTab === "teams" || activeTab === "athletes" ? (
+  <GamesFiltersModule
                   selectedLeagues={selectedLeagues}
                   selectedSeason={selectedSeason}
                   onLeagueToggle={handleLeagueToggle}
@@ -227,7 +253,7 @@ export default function ExplorePage() {
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               {/* Main content area */}
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main" order={1}>
-                <div className={cn("h-full flex flex-col py-3", !previewPlay && "pr-3")}>
+                <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
                   {/* Explore Tabs */}
                   <div className="flex items-center gap-2 px-3 pt-3 pb-2 bg-background rounded-t-lg">
                     {exploreTabs.map((tab) => (
@@ -291,6 +317,17 @@ export default function ExplorePage() {
                       <TeamsModule
                         selectedLeagues={selectedLeagues}
                         selectedSeason={selectedSeason}
+                        onClickTeam={handleTeamClick}
+                        activeTeamId={previewTeam?.id}
+                      />
+                    </div>
+                  ) : activeTab === "athletes" ? (
+                    <div className="flex-1 bg-background rounded-b-lg overflow-hidden">
+                      <AthletesModule
+                        selectedLeagues={selectedLeagues}
+                        selectedSeason={selectedSeason}
+                        onClickAthlete={handleAthleteClick}
+                        activeAthleteId={previewAthlete?.id}
                       />
                     </div>
                   ) : (
@@ -314,10 +351,12 @@ export default function ExplorePage() {
                 order={2}
               >
                 <div className="h-full pr-3 py-3 pl-0">
-                  {(previewPlay || previewGame) && (
+                  {(previewPlay || previewGame || previewTeam || previewAthlete) && (
                     <PreviewModule
                       play={previewPlay || undefined}
                       game={previewGame || undefined}
+                      team={previewTeam || undefined}
+                      athlete={previewAthlete || undefined}
                       onClose={handleClosePreview}
                     />
                   )}
