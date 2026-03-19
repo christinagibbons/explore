@@ -1748,6 +1748,22 @@ function getTeamLeagueInfo(teamId: string): { league: string; conference: string
   return { league: "NFL", conference: "AFC", division: "AFC East" }
 }
 
+/** Generate deterministic mock team identity data based on team ID */
+function generateTeamIdentityData(teamId: string) {
+  const h = hashString(teamId)
+  const firstNames = ["Mike", "John", "Bill", "Nick", "Andy", "Sean", "Kyle", "Dan", "Kevin", "Matt"]
+  const lastNames = ["Johnson", "Smith", "Williams", "Brown", "Jones", "Davis", "Wilson", "Thomas", "Moore", "Taylor"]
+  const cities = ["Pittsburgh, PA", "Dallas, TX", "Miami, FL", "Chicago, IL", "New York, NY", "Denver, CO", "Seattle, WA", "Phoenix, AZ", "Atlanta, GA", "Detroit, MI", "Los Angeles, CA", "San Francisco, CA", "Boston, MA", "Philadelphia, PA"]
+  const stadiumPrefixes = ["Memorial", "Victory", "Heritage", "National", "United", "State", "Metro", "Central", "University", "Civic"]
+  const stadiumSuffixes = ["Stadium", "Field", "Arena", "Bowl", "Coliseum", "Field House", "Center"]
+  
+  return {
+    headCoach: `${firstNames[h % firstNames.length]} ${lastNames[(h + 3) % lastNames.length]}`,
+    location: cities[h % cities.length],
+    homeArena: `${stadiumPrefixes[h % stadiumPrefixes.length]} ${stadiumSuffixes[(h + 2) % stadiumSuffixes.length]}`,
+  }
+}
+
 /** Generate deterministic mock team stats based on team ID */
 function generateTeamStats(teamId: string) {
   const h = hashString(teamId)
@@ -1891,8 +1907,28 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
           </div>
         </div>
 
+        {/* Identity Section */}
+        <div className="px-5 pb-4">
+          <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
+          <div className="flex flex-col">
+            {(() => {
+              const identityData = generateTeamIdentityData(team.id)
+              const leagueInfo = getTeamLeagueInfo(team.id)
+              return (
+                <>
+                  <IdentityRow label="Team Name" value={team.name} />
+                  <IdentityRow label="Head Coach" value={identityData.headCoach} onClick={() => {}} />
+                  <IdentityRow label="Conference" value={leagueInfo.conference} onClick={() => {}} />
+                  <IdentityRow label="Location" value={identityData.location} />
+                  <IdentityRow label="Home Arena" value={identityData.homeArena} isLast />
+                </>
+              )
+            })()}
+          </div>
+        </div>
+
         {/* Team Stats Section */}
-        <div className="px-4 pt-5">
+        <div className="px-5 pt-2">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Team Stats</h4>
           <div className="grid grid-cols-2 gap-2">
             {/* Points For */}
