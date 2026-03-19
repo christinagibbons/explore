@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { VIDEO_POOL } from "@/lib/mock-datasets"
@@ -18,6 +19,7 @@ import { findTeamById, mockClips } from "@/lib/games-context"
 import { mockGames } from "@/lib/mock-games"
 import { getAthletesForTeam } from "@/lib/mock-teams"
 import type { Team } from "@/lib/sports-data"
+
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -700,7 +702,7 @@ function AthleteProfileView({ athlete, onBack, onNavigateToTeam }: { athlete: At
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Avatar + Name + Team/Position */}
+        {/* Avatar + Name + Team/Position - matching Figma design */}
         <div className="px-5 pt-6 pb-4 flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shrink-0">
             {athlete.name.split(" ").map((n) => n[0]).join("")}
@@ -708,15 +710,23 @@ function AthleteProfileView({ athlete, onBack, onNavigateToTeam }: { athlete: At
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
+              {athleteTeam && (
+                <div
+                  className="w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+                  style={{ backgroundColor: athleteTeam.logoColor }}
+                >
+                  {athleteTeam.abbreviation.slice(0, 2)}
+                </div>
+              )}
               {athleteTeam && onNavigateToTeam ? (
                 <button
                   onClick={() => onNavigateToTeam(athleteTeam)}
-                  className="text-primary font-medium hover:underline cursor-pointer"
+                  className="text-foreground underline cursor-pointer"
                 >
                   {teamName}
                 </button>
               ) : (
-                <span className="text-primary font-medium">{teamName}</span>
+                <span>{teamName}</span>
               )}
               <span className="text-border">{"·"}</span>
               <span>{athlete.position}</span>
@@ -1395,8 +1405,32 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
   
   // Get clips for this game
   const gameClips = useMemo(() => {
-  return mockClips.filter((clip) => clip.gameId === game.id)
+    return mockClips.filter((clip) => clip.gameId === game.id)
   }, [game.id])
+
+  // Video preview setup - use first clip's video or a default
+  const videoUrl = useMemo(() => {
+    if (gameClips.length > 0 && gameClips[0].thumbnailUrl) {
+      return gameClips[0].thumbnailUrl
+    }
+    const h = hashString(game.id)
+    return VIDEO_POOL[h % VIDEO_POOL.length]
+  }, [game.id, gameClips])
+
+  // Source type for the video badge
+  const sourceType: SourceType = useMemo(() => {
+    const h = hashString(game.id)
+    const types: SourceType[] = ["broadcast", "endzone", "all22"]
+    return types[h % types.length]
+  }, [game.id])
+
+  // Score display for video overlay
+  const videoScore = useMemo(() => {
+    if (game.score) {
+      return `${game.score.away} - ${game.score.home}`
+    }
+    return null
+  }, [game.score])
 
   // Format game date
   const formattedDate = useMemo(() => {
@@ -1409,13 +1443,18 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
     })
   }, [game.date])
 
-// Handle View Full Game action - uses onNavigateToGame callback if provided
-  const handleViewFullGame = useCallback(() => {
-  if (onNavigateToGame) {
-    onNavigateToGame(game)
-  } else {
+  // Handle "Open Game" action from video player
+  const handleOpenGame = useCallback(() => {
     router.push("/watch")
-  }
+  }, [router])
+
+  // Handle View Full Game action - uses onNavigateToGame callback if provided
+  const handleViewFullGame = useCallback(() => {
+    if (onNavigateToGame) {
+      onNavigateToGame(game)
+    } else {
+      router.push("/watch")
+    }
   }, [router, onNavigateToGame, game])
 
   // Handle Download action
@@ -1454,6 +1493,16 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
+        {/* Video Preview */}
+        <div className="px-4 pt-4">
+          <PreviewVideoPlayer
+            videoUrl={videoUrl}
+            sourceType={sourceType}
+            score={videoScore}
+            onOpenClip={handleOpenGame}
+          />
+        </div>
+
         {/* Game Card */}
         <div className="px-4 pt-4">
           <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
@@ -1688,7 +1737,7 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
 }
 
 // ---------------------------------------------------------------------------
-// TeamPreview (Team Profile in Preview Module)
+// TeamPreview (Team Snapshot in Preview Module)
 // ---------------------------------------------------------------------------
 
 interface TeamPreviewProps {
@@ -1697,6 +1746,61 @@ interface TeamPreviewProps {
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
   onNavigateToGame?: (game: Game) => void
   hideHeader?: boolean
+}
+
+/** Look up team's league, conference, and division from sports data */
+function getTeamLeagueInfo(teamId: string): { league: string; conference: string; division: string } {
+  // Import inline to avoid circular deps
+  const { sportsData } = require("@/lib/sports-data")
+  
+  // Check NFL
+  for (const conf of sportsData.NFL.conferences) {
+    if (conf.subdivisions) {
+      for (const div of conf.subdivisions) {
+        if (div.teams.some((t: { id: string }) => t.id === teamId)) {
+          return { league: "NFL", conference: conf.name, division: div.name }
+        }
+      }
+    }
+  }
+  
+  // Check NCAA
+  for (const conf of sportsData["NCAA (FBS)"].conferences) {
+    if (conf.teams.some((t: { id: string }) => t.id === teamId)) {
+      return { league: "NCAA", conference: conf.name, division: conf.name }
+    }
+  }
+  
+  // Check High School
+  for (const conf of sportsData.HighSchool.conferences) {
+    if (conf.teams.some((t: { id: string }) => t.id === teamId)) {
+      return { league: "High School", conference: conf.name, division: conf.name }
+    }
+  }
+  
+  // Fallback based on ID pattern
+  if (teamId.startsWith("hs-")) {
+    return { league: "High School", conference: "Regional", division: "Varsity" }
+  } else if (teamId.length > 3) {
+    return { league: "NCAA", conference: "FBS", division: "Division I" }
+  }
+  return { league: "NFL", conference: "AFC", division: "AFC East" }
+}
+
+/** Generate deterministic mock team identity data based on team ID */
+function generateTeamIdentityData(teamId: string) {
+  const h = hashString(teamId)
+  const firstNames = ["Mike", "John", "Bill", "Nick", "Andy", "Sean", "Kyle", "Dan", "Kevin", "Matt"]
+  const lastNames = ["Johnson", "Smith", "Williams", "Brown", "Jones", "Davis", "Wilson", "Thomas", "Moore", "Taylor"]
+  const cities = ["Pittsburgh, PA", "Dallas, TX", "Miami, FL", "Chicago, IL", "New York, NY", "Denver, CO", "Seattle, WA", "Phoenix, AZ", "Atlanta, GA", "Detroit, MI", "Los Angeles, CA", "San Francisco, CA", "Boston, MA", "Philadelphia, PA"]
+  const stadiumPrefixes = ["Memorial", "Victory", "Heritage", "National", "United", "State", "Metro", "Central", "University", "Civic"]
+  const stadiumSuffixes = ["Stadium", "Field", "Arena", "Bowl", "Coliseum", "Field House", "Center"]
+  
+  return {
+    headCoach: `${firstNames[h % firstNames.length]} ${lastNames[(h + 3) % lastNames.length]}`,
+    location: cities[h % cities.length],
+    homeArena: `${stadiumPrefixes[h % stadiumPrefixes.length]} ${stadiumSuffixes[(h + 2) % stadiumSuffixes.length]}`,
+  }
 }
 
 /** Generate deterministic mock team stats based on team ID */
@@ -1817,28 +1921,53 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {/* Team Identity Card */}
-        <div className="px-4 pt-4">
-          <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
-            <div className="flex items-center gap-4">
-              <div
-                className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xl font-bold shrink-0"
-                style={{ backgroundColor: team.logoColor }}
-              >
-                {team.abbreviation}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold text-foreground">{team.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {stats.record.wins}-{stats.record.losses} Record
-                </p>
-              </div>
-            </div>
+        {/* Team Identity Card - matching Athlete pattern */}
+        <div className="px-5 pt-6 pb-4 flex items-center gap-4">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold shrink-0"
+            style={{ backgroundColor: team.logoColor }}
+          >
+            {team.abbreviation}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-foreground leading-tight truncate">{team.name}</h2>
+            {(() => {
+              const leagueInfo = getTeamLeagueInfo(team.id)
+              return (
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
+                  <span>{leagueInfo.league}</span>
+                  <span className="text-border">{"·"}</span>
+                  <span>{leagueInfo.conference}</span>
+                  <span className="text-border">{"·"}</span>
+                  <span>{leagueInfo.division}</span>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+
+        {/* Identity Section */}
+        <div className="px-5 pb-4">
+          <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
+          <div className="flex flex-col">
+            {(() => {
+              const identityData = generateTeamIdentityData(team.id)
+              const leagueInfo = getTeamLeagueInfo(team.id)
+              return (
+                <>
+                  <IdentityRow label="Team Name" value={team.name} />
+                  <IdentityRow label="Head Coach" value={identityData.headCoach} onClick={() => {}} />
+                  <IdentityRow label="Conference" value={leagueInfo.conference} onClick={() => {}} />
+                  <IdentityRow label="Location" value={identityData.location} />
+                  <IdentityRow label="Home Arena" value={identityData.homeArena} isLast />
+                </>
+              )
+            })()}
           </div>
         </div>
 
         {/* Team Stats Section */}
-        <div className="px-4 pt-5">
+        <div className="px-5 pt-2">
           <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Team Stats</h4>
           <div className="grid grid-cols-2 gap-2">
             {/* Points For */}
@@ -2016,7 +2145,7 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: Athl
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {/* Avatar + Name + Team/Position */}
+        {/* Avatar + Name + Team/Position - matching Figma design */}
         <div className="px-5 pt-6 pb-4 flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shrink-0">
             {athlete.name.split(" ").map((n) => n[0]).join("")}
@@ -2024,15 +2153,23 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: Athl
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
+              {athleteTeam && (
+                <div
+                  className="w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+                  style={{ backgroundColor: athleteTeam.logoColor }}
+                >
+                  {athleteTeam.abbreviation.slice(0, 2)}
+                </div>
+              )}
               {athleteTeam && onNavigateToTeam ? (
                 <button
                   onClick={() => onNavigateToTeam(athleteTeam)}
-                  className="text-primary font-medium hover:underline cursor-pointer"
+                  className="text-foreground underline cursor-pointer"
                 >
                   {teamName}
                 </button>
               ) : (
-                <span className="text-primary font-medium">{teamName}</span>
+                <span>{teamName}</span>
               )}
               <span className="text-border">{"·"}</span>
               <span>{athlete.position}</span>

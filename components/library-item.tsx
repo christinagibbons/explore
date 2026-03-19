@@ -194,7 +194,7 @@ export function LibraryItem({
             <div className="flex items-center justify-center flex-shrink-0 rounded overflow-hidden h-5 w-9 ml-0 relative">
               {item.type === "playlist" ? (
                 <div className="w-full h-full flex items-center justify-center bg-muted">
-                  <Icon name="list" size={14} className={cn(isSelected ? "text-white" : "text-foreground")} />
+                  <Icon name="menu" size={14} className={cn(isSelected ? "text-white" : "text-foreground")} />
                 </div>
               ) : (
                 <>
