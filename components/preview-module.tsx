@@ -1709,6 +1709,45 @@ interface TeamPreviewProps {
   hideHeader?: boolean
 }
 
+/** Look up team's league, conference, and division from sports data */
+function getTeamLeagueInfo(teamId: string): { league: string; conference: string; division: string } {
+  // Import inline to avoid circular deps
+  const { sportsData } = require("@/lib/sports-data")
+  
+  // Check NFL
+  for (const conf of sportsData.NFL.conferences) {
+    if (conf.subdivisions) {
+      for (const div of conf.subdivisions) {
+        if (div.teams.some((t: { id: string }) => t.id === teamId)) {
+          return { league: "NFL", conference: conf.name, division: div.name }
+        }
+      }
+    }
+  }
+  
+  // Check NCAA
+  for (const conf of sportsData["NCAA (FBS)"].conferences) {
+    if (conf.teams.some((t: { id: string }) => t.id === teamId)) {
+      return { league: "NCAA", conference: conf.name, division: conf.name }
+    }
+  }
+  
+  // Check High School
+  for (const conf of sportsData.HighSchool.conferences) {
+    if (conf.teams.some((t: { id: string }) => t.id === teamId)) {
+      return { league: "High School", conference: conf.name, division: conf.name }
+    }
+  }
+  
+  // Fallback based on ID pattern
+  if (teamId.startsWith("hs-")) {
+    return { league: "High School", conference: "Regional", division: "Varsity" }
+  } else if (teamId.length > 3) {
+    return { league: "NCAA", conference: "FBS", division: "Division I" }
+  }
+  return { league: "NFL", conference: "AFC", division: "AFC East" }
+}
+
 /** Generate deterministic mock team stats based on team ID */
 function generateTeamStats(teamId: string) {
   const h = hashString(teamId)
@@ -1837,19 +1876,18 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
           </div>
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground leading-tight truncate">{team.name}</h2>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
-              <div
-                className="w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-bold shrink-0"
-                style={{ backgroundColor: "#1a365d" }}
-              >
-                {team.id.startsWith("hs-") ? "HS" : team.id.length > 3 ? "NC" : "NFL"}
-              </div>
-              <span className="text-primary font-medium hover:underline cursor-pointer">
-                {team.id.startsWith("hs-") ? "High School" : team.id.length > 3 ? "NCAA" : "NFL"}
-              </span>
-              <span className="text-border">{"·"}</span>
-              <span>{stats.record.wins}-{stats.record.losses} Record</span>
-            </div>
+            {(() => {
+              const leagueInfo = getTeamLeagueInfo(team.id)
+              return (
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
+                  <span>{leagueInfo.league}</span>
+                  <span className="text-border">{"·"}</span>
+                  <span>{leagueInfo.conference}</span>
+                  <span className="text-border">{"·"}</span>
+                  <span>{leagueInfo.division}</span>
+                </div>
+              )
+            })()}
           </div>
         </div>
 
