@@ -1574,52 +1574,52 @@ function GamePreview({ game, onClose, onNavigateToTeam, onNavigateToGame, onNavi
 
         {/* Game Info */}
         <div className="px-4 pt-5 pb-3">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Game Details</h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Date</span>
-              <span className="text-foreground">{formattedDate}</span>
+          <h4 className="text-base font-bold text-foreground mb-4">Game Details</h4>
+          <div className="space-y-0">
+            <div className="flex justify-between py-3 border-b border-dotted border-border">
+              <span className="text-sm font-medium text-foreground">Date</span>
+              <span className="text-sm text-muted-foreground">{formattedDate}</span>
             </div>
             {game.kickoffTime && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Kickoff</span>
-                <span className="text-foreground">{game.kickoffTime}</span>
+              <div className="flex justify-between py-3 border-b border-dotted border-border">
+                <span className="text-sm font-medium text-foreground">Kickoff</span>
+                <span className="text-sm text-muted-foreground">{game.kickoffTime}</span>
               </div>
             )}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Venue</span>
-              <span className="text-foreground">{game.venue}</span>
+            <div className="flex justify-between py-3 border-b border-dotted border-border">
+              <span className="text-sm font-medium text-foreground">Venue</span>
+              <span className="text-sm text-muted-foreground">{game.venue}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Location</span>
-              <span className="text-foreground">{game.city}</span>
+            <div className="flex justify-between py-3 border-b border-dotted border-border">
+              <span className="text-sm font-medium text-foreground">Location</span>
+              <span className="text-sm text-muted-foreground">{game.city}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Season</span>
-              <span className="text-foreground">{game.season}</span>
+            <div className="flex justify-between py-3 border-b border-dotted border-border">
+              <span className="text-sm font-medium text-foreground">Season</span>
+              <span className="text-sm text-muted-foreground">{game.season}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">League</span>
-              <span className="text-foreground">
+            <div className="flex justify-between py-3 border-b border-dotted border-border">
+              <span className="text-sm font-medium text-foreground">League</span>
+              <span className="text-sm text-muted-foreground">
                 {game.league === "HighSchool" ? "High School" : game.league}
               </span>
             </div>
             {game.broadcast && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Broadcast</span>
-                <span className="text-foreground">{game.broadcast.network}</span>
+              <div className="flex justify-between py-3 border-b border-dotted border-border">
+                <span className="text-sm font-medium text-foreground">Broadcast</span>
+                <span className="text-sm text-muted-foreground">{game.broadcast.network}</span>
               </div>
             )}
             {game.attendance && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Attendance</span>
-                <span className="text-foreground">{game.attendance.toLocaleString()}</span>
+              <div className="flex justify-between py-3 border-b border-dotted border-border">
+                <span className="text-sm font-medium text-foreground">Attendance</span>
+                <span className="text-sm text-muted-foreground">{game.attendance.toLocaleString()}</span>
               </div>
             )}
             {game.weather && game.weather.condition !== "dome" && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Weather</span>
-                <span className="text-foreground capitalize">
+              <div className="flex justify-between py-3">
+                <span className="text-sm font-medium text-foreground">Weather</span>
+                <span className="text-sm text-muted-foreground capitalize">
                   {game.weather.temperature}°F, {game.weather.condition}
                 </span>
               </div>

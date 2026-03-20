@@ -317,25 +317,25 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
               <section>
                 <h2 className="text-base font-bold text-foreground mb-4">Identity</h2>
                 <div className="space-y-0">
-                  <div className="flex justify-between py-3 border-b border-border">
-                    <span className="text-sm text-muted-foreground">Team Name</span>
-                    <span className="text-sm text-foreground font-medium">{identity.fullName}</span>
+                  <div className="flex justify-between py-3 border-b border-dotted border-border">
+                    <span className="text-sm font-medium text-foreground">Team Name</span>
+                    <span className="text-sm text-muted-foreground">{identity.fullName}</span>
                   </div>
-                  <div className="flex justify-between py-3 border-b border-border">
-                    <span className="text-sm text-muted-foreground">Head Coach</span>
-                    <span className="text-sm text-primary font-medium">{identity.headCoach}</span>
+                  <div className="flex justify-between py-3 border-b border-dotted border-border">
+                    <span className="text-sm font-medium text-foreground">Head Coach</span>
+                    <span className="text-sm text-primary">{identity.headCoach}</span>
                   </div>
-                  <div className="flex justify-between py-3 border-b border-border">
-                    <span className="text-sm text-muted-foreground">Conference</span>
-                    <span className="text-sm text-primary font-medium">{conferenceInfo.conference}</span>
+                  <div className="flex justify-between py-3 border-b border-dotted border-border">
+                    <span className="text-sm font-medium text-foreground">Conference</span>
+                    <span className="text-sm text-primary">{conferenceInfo.conference}</span>
                   </div>
-                  <div className="flex justify-between py-3 border-b border-border">
-                    <span className="text-sm text-muted-foreground">Location</span>
-                    <span className="text-sm text-foreground font-medium">{identity.location}</span>
+                  <div className="flex justify-between py-3 border-b border-dotted border-border">
+                    <span className="text-sm font-medium text-foreground">Location</span>
+                    <span className="text-sm text-muted-foreground">{identity.location}</span>
                   </div>
                   <div className="flex justify-between py-3">
-                    <span className="text-sm text-muted-foreground">Home Arena</span>
-                    <span className="text-sm text-foreground font-medium">{identity.homeArena}</span>
+                    <span className="text-sm font-medium text-foreground">Home Arena</span>
+                    <span className="text-sm text-muted-foreground">{identity.homeArena}</span>
                   </div>
                 </div>
               </section>
