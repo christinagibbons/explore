@@ -1,12 +1,16 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { nameToSlug } from "@/lib/athletes-data"
 import { getTeamForAthlete } from "@/lib/mock-teams"
+import { useExploreContextOptional } from "@/lib/explore-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { ExploreScopeBar } from "@/components/explore/explore-scope-bar"
 import type { Athlete } from "@/types/athlete"
 
 // ---------------------------------------------------------------------------
@@ -178,15 +182,51 @@ interface AthleteProfilePageProps {
 
 export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
+  const router = useRouter()
+  const exploreContext = useExploreContextOptional()
 
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
   const teamInfo = useMemo(() => getTeamForAthlete(athlete.id), [athlete.id])
 
+  // Update breadcrumbs when athlete profile is loaded
+  useEffect(() => {
+    if (exploreContext) {
+      exploreContext.pushBreadcrumb({
+        type: "athlete",
+        id: athlete.id,
+        label: athlete.name,
+      })
+    }
+  }, [athlete.id, athlete.name, exploreContext])
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = (anchor: { type: string; id?: string; label: string }, index: number) => {
+    if (anchor.type === "explore") {
+      router.push("/explore")
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-background">
+      {/* Breadcrumbs & Scope Bar - only show if within explore context */}
+      {exploreContext && (
+        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-4 py-2">
+            <ExploreBreadcrumbs 
+              className="mb-1" 
+              onNavigate={handleBreadcrumbNavigate}
+            />
+            <ExploreScopeBar className="mx-0 -mx-4 px-4 border-t border-border/30 mt-2" />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className={cn(
+        "border-b border-border bg-background/95 backdrop-blur-sm",
+        !exploreContext && "sticky top-0 z-50"
+      )}>
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">

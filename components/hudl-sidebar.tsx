@@ -217,26 +217,20 @@ export function HudlSidebar({ children }: HudlSidebarProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="end" sideOffset={8} className="w-64">
                   <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">Select Version</div>
-                  {(["v1", "v2", "v3"] as ExploreVersion[]).map((version) => {
-                    const isDisabled = version === "v3"
-                    return (
+                  {(["v1", "v2", "v3"] as ExploreVersion[]).map((version) => (
                       <DropdownMenuItem
                         key={version}
-                        onClick={() => !isDisabled && exploreContext.setExploreVersion(version)}
-                        disabled={isDisabled}
+                        onClick={() => exploreContext.setExploreVersion(version)}
                         className={cn(
-                          exploreContext.exploreVersion === version ? "bg-accent" : "",
-                          isDisabled && "opacity-50 cursor-not-allowed"
+                          exploreContext.exploreVersion === version ? "bg-accent" : ""
                         )}
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${exploreContext.exploreVersion === version ? "bg-blue-600" : "bg-muted"}`} />
                           {EXPLORE_VERSION_LABELS[version]}
-                          {isDisabled && <span className="text-xs text-muted-foreground ml-auto">(Coming soon)</span>}
                         </div>
                       </DropdownMenuItem>
-                    )
-                  })}
+                    ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>

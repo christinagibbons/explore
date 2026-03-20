@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Icon } from "@/components/icon"
@@ -10,6 +11,9 @@ import { getAthletesForTeam } from "@/lib/mock-teams"
 import { mockGames } from "@/lib/mock-games"
 import { findTeamById } from "@/lib/games-context"
 import { nameToSlug } from "@/lib/athletes-data"
+import { useExploreContextOptional } from "@/lib/explore-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { ExploreScopeBar } from "@/components/explore/explore-scope-bar"
 import { Play, ChevronRight, ChevronLeft } from "lucide-react"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
@@ -144,6 +148,26 @@ interface TeamProfilePageProps {
 export function TeamProfilePage({ team }: TeamProfilePageProps) {
   const [activeTab, setActiveTab] = useState<TeamProfileTab>("Overview")
   const highlightsRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const exploreContext = useExploreContextOptional()
+
+  // Update breadcrumbs when team profile is loaded
+  useEffect(() => {
+    if (exploreContext) {
+      exploreContext.pushBreadcrumb({
+        type: "team",
+        id: team.id,
+        label: team.name,
+      })
+    }
+  }, [team.id, team.name, exploreContext])
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = (anchor: { type: string; id?: string; label: string }, index: number) => {
+    if (anchor.type === "explore") {
+      router.push("/explore")
+    }
+  }
 
   // Get team identity
   const identity = useMemo(() => generateTeamIdentity(team.id, team.name), [team.id, team.name])
@@ -248,8 +272,24 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
 
   return (
     <div className="h-full overflow-y-auto bg-background">
+      {/* Breadcrumbs & Scope Bar - only show if within explore context */}
+      {exploreContext && (
+        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 py-2">
+            <ExploreBreadcrumbs 
+              className="mb-1" 
+              onNavigate={handleBreadcrumbNavigate}
+            />
+            <ExploreScopeBar className="mx-0 -mx-6 px-6 border-t border-border/30 mt-2" />
+          </div>
+        </div>
+      )}
+
       {/* Sticky Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className={cn(
+        "border-b border-border bg-background/95 backdrop-blur-sm",
+        !exploreContext && "sticky top-0 z-50"
+      )}>
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
