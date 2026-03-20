@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { WatchProvider, useWatchContext } from "@/components/watch/watch-context"
 import { GridModule } from "@/components/grid-module"
 import { FiltersModule } from "@/components/filters-module"
@@ -24,9 +24,7 @@ import type { PlayData } from "@/lib/mock-datasets"
 import type { Game, GameLeague } from "@/types/game"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
-import { useExploreContext, type EntityType, type BreadcrumbAnchor } from "@/lib/explore-context"
-import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
-import { ExploreScopeBar } from "@/components/explore/explore-scope-bar"
+import { useExploreContext } from "@/lib/explore-context"
 
 const exploreTabs = [
   { value: "clips", label: "Clips" },
@@ -108,15 +106,7 @@ export function ExploreV3() {
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
-  const { 
-    showFilters, 
-    setShowFilters, 
-    setActiveFilterCount,
-    pushBreadcrumb,
-    clearBreadcrumbs,
-    updateEntityType,
-    scope,
-  } = useExploreContext()
+  const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
 
@@ -137,48 +127,6 @@ export function ExploreV3() {
 
   const gamesFilterCount = selectedLeagues.length + (selectedSeason ? 1 : 0)
 
-  // Handle tab changes - updates scope and resets breadcrumbs
-  const handleTabChange = useCallback((tab: ExploreTab) => {
-    setActiveTab(tab)
-    updateEntityType(tab as EntityType)
-    // Clear any preview when switching tabs
-    setPreviewPlay(null)
-    setPreviewGame(null)
-    setPreviewTeam(null)
-    setPreviewAthlete(null)
-    // Add the entity type to breadcrumbs (Explore > Athletes, etc.)
-    // Note: updateEntityType already resets to Explore root, so we push the tab
-    const tabLabel = exploreTabs.find(t => t.value === tab)?.label || tab
-    pushBreadcrumb({
-      type: "explore",
-      label: tabLabel,
-      entityType: tab as EntityType,
-    })
-  }, [updateEntityType, pushBreadcrumb])
-
-  // Handle breadcrumb navigation
-  const handleBreadcrumbNavigate = useCallback((anchor: BreadcrumbAnchor, index: number) => {
-    // If navigating back to Explore root, clear previews
-    if (anchor.type === "explore") {
-      setPreviewPlay(null)
-      setPreviewGame(null)
-      setPreviewTeam(null)
-      setPreviewAthlete(null)
-    }
-  }, [])
-
-  // Initialize breadcrumb with current tab on mount
-  useEffect(() => {
-    const tabLabel = exploreTabs.find(t => t.value === activeTab)?.label || activeTab
-    pushBreadcrumb({
-      type: "explore",
-      label: tabLabel,
-      entityType: activeTab as EntityType,
-    })
-    // Only run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   useEffect(() => {
     if (previewPlay || previewGame || previewTeam || previewAthlete) {
       previewPanelRef.current?.resize(50)
@@ -194,12 +142,6 @@ export function ExploreV3() {
     setPreviewTeam(null)
     setPreviewAthlete(null)
     setPreviewGame(game)
-    // Push game to breadcrumbs
-    pushBreadcrumb({
-      type: "game",
-      id: game.id,
-      label: `${game.homeTeam} vs ${game.awayTeam}`,
-    })
   }
 
   const handleClipClick = (play: PlayData) => {
@@ -207,12 +149,6 @@ export function ExploreV3() {
     setPreviewTeam(null)
     setPreviewAthlete(null)
     setPreviewPlay(play)
-    // Push clip to breadcrumbs
-    pushBreadcrumb({
-      type: "clip",
-      id: play.id,
-      label: `Play #${play.playNumber}`,
-    })
   }
 
   const handleTeamClick = (team: Team) => {
@@ -220,12 +156,6 @@ export function ExploreV3() {
     setPreviewGame(null)
     setPreviewAthlete(null)
     setPreviewTeam(team)
-    // Push team to breadcrumbs
-    pushBreadcrumb({
-      type: "team",
-      id: team.id,
-      label: team.name,
-    })
   }
 
   const handleAthleteClick = (athlete: Athlete & { id: string }) => {
@@ -233,12 +163,6 @@ export function ExploreV3() {
     setPreviewGame(null)
     setPreviewTeam(null)
     setPreviewAthlete(athlete)
-    // Push athlete to breadcrumbs
-    pushBreadcrumb({
-      type: "athlete",
-      id: athlete.id,
-      label: athlete.name,
-    })
   }
 
   const handleClosePreview = () => {
@@ -246,8 +170,6 @@ export function ExploreV3() {
     setPreviewGame(null)
     setPreviewTeam(null)
     setPreviewAthlete(null)
-    // Clear breadcrumbs back to just "Explore" when closing preview
-    clearBreadcrumbs()
   }
 
   useEffect(() => {
@@ -330,23 +252,12 @@ export function ExploreV3() {
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v3" order={1}>
                 <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
-                  {/* Breadcrumbs */}
-                  <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
-                    <ExploreBreadcrumbs 
-                      className="mb-2" 
-                      onNavigate={handleBreadcrumbNavigate}
-                    />
-                    
-                    {/* Scope Bar */}
-                    <ExploreScopeBar className="mx-0 -mx-3 px-3 border-t border-border/30" />
-                  </div>
-
                   {/* Tabs */}
-                  <div className="flex items-center gap-2 px-3 pt-2 pb-2 bg-background">
+                  <div className="flex items-center gap-2 px-3 pt-3 pb-2 bg-background rounded-t-lg">
                     {exploreTabs.map((tab) => (
                       <button
                         key={tab.value}
-                        onClick={() => handleTabChange(tab.value)}
+                        onClick={() => setActiveTab(tab.value)}
                         className={cn(
                           "px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200",
                           activeTab === tab.value
