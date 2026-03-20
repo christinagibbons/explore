@@ -127,7 +127,7 @@ function NavigationHeader({ currentItem, canGoBack, canGoForward, onBack, onForw
                 "h-7 w-7 shrink-0",
                 canGoBack 
                   ? "text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
+                  : "text-muted-foreground/50 cursor-not-allowed"
               )}
             >
               <Icon name="chevronLeft" className="w-4 h-4" />
@@ -141,7 +141,7 @@ function NavigationHeader({ currentItem, canGoBack, canGoForward, onBack, onForw
                 "h-7 w-7 shrink-0",
                 canGoForward 
                   ? "text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
+                  : "text-muted-foreground/50 cursor-not-allowed"
               )}
             >
               <Icon name="chevronRight" className="w-4 h-4" />
