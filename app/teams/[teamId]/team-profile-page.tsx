@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -10,6 +10,8 @@ import { getAthletesForTeam } from "@/lib/mock-teams"
 import { mockGames } from "@/lib/mock-games"
 import { findTeamById } from "@/lib/games-context"
 import { nameToSlug } from "@/lib/athletes-data"
+import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { Play, ChevronRight, ChevronLeft } from "lucide-react"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
@@ -144,6 +146,31 @@ interface TeamProfilePageProps {
 export function TeamProfilePage({ team }: TeamProfilePageProps) {
   const [activeTab, setActiveTab] = useState<TeamProfileTab>("Overview")
   const highlightsRef = useRef<HTMLDivElement>(null)
+  const breadcrumbContext = useBreadcrumbContextOptional()
+
+  // Push team anchor to breadcrumbs when the page loads
+  // If no breadcrumbs exist (direct navigation), set up minimal meaningful hierarchy
+  useEffect(() => {
+    if (breadcrumbContext) {
+      // If no collection anchor exists, set up "Teams" as the starting point
+      if (breadcrumbContext.breadcrumbs.length === 0) {
+        breadcrumbContext.setCollectionAnchor("teams")
+      }
+      breadcrumbContext.pushAnchor({
+        anchorType: "entity",
+        specificType: "team",
+        label: team.name,
+        id: team.id,
+      })
+    }
+    // Only run once on mount - breadcrumbContext is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [team.id])
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = () => {
+    // Navigation is handled by the breadcrumb component
+  }
 
   // Get team identity
   const identity = useMemo(() => generateTeamIdentity(team.id, team.name), [team.id, team.name])
@@ -248,8 +275,20 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
 
   return (
     <div className="h-full overflow-y-auto bg-background">
+      {/* Breadcrumbs */}
+      {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
+        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 py-2">
+            <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+          </div>
+        </div>
+      )}
+
       {/* Sticky Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className={cn(
+        "border-b border-border bg-background/95 backdrop-blur-sm",
+        (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
+      )}>
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

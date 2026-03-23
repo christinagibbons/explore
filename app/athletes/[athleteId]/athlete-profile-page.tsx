@@ -1,12 +1,14 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import Link from "next/link"
 
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { nameToSlug } from "@/lib/athletes-data"
 import { getTeamForAthlete } from "@/lib/mock-teams"
+import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import type { Athlete } from "@/types/athlete"
 
 // ---------------------------------------------------------------------------
@@ -178,15 +180,55 @@ interface AthleteProfilePageProps {
 
 export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
+  const breadcrumbContext = useBreadcrumbContextOptional()
 
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
   const teamInfo = useMemo(() => getTeamForAthlete(athlete.id), [athlete.id])
 
+  // Generate slug for routing
+  const athleteSlug = nameToSlug(athlete.name)
+
+  // Push athlete anchor to breadcrumbs when the page loads
+  // If no breadcrumbs exist (direct navigation), set up minimal meaningful hierarchy
+  useEffect(() => {
+    if (breadcrumbContext) {
+      // If no collection anchor exists, set up "Athletes" as the starting point
+      if (breadcrumbContext.breadcrumbs.length === 0) {
+        breadcrumbContext.setCollectionAnchor("athletes")
+      }
+      breadcrumbContext.pushAnchor({
+        anchorType: "entity",
+        specificType: "athlete",
+        label: athlete.name,
+        id: athleteSlug,
+      })
+    }
+    // Only run once on mount - breadcrumbContext is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athleteSlug])
+
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = () => {
+    // Navigation is handled by the breadcrumb component
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-background">
+      {/* Breadcrumbs */}
+      {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
+        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-4 py-2">
+            <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+      <header className={cn(
+        "border-b border-border bg-background/95 backdrop-blur-sm",
+        (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
+      )}>
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">

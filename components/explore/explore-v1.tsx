@@ -25,6 +25,8 @@ import type { Game, GameLeague } from "@/types/game"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
 import { useExploreContext } from "@/lib/explore-context"
+import { useBreadcrumbContext, type CollectionType } from "@/lib/breadcrumb-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 
 const exploreTabs = [
   { value: "clips", label: "Clips" },
@@ -107,6 +109,7 @@ export function ExploreV1() {
   const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
   const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
+  const { setCollectionAnchor } = useBreadcrumbContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
 
@@ -126,6 +129,14 @@ export function ExploreV1() {
   }
 
   const gamesFilterCount = selectedLeagues.length + (selectedSeason ? 1 : 0)
+
+  // Set collection anchor when tab changes or on mount
+  // This establishes the breadcrumb trail starting point
+  useEffect(() => {
+    setCollectionAnchor(activeTab as CollectionType)
+    // setCollectionAnchor is a stable callback from context
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
 
   useEffect(() => {
     if (previewPlay || previewGame || previewTeam || previewAthlete) {
@@ -252,8 +263,13 @@ export function ExploreV1() {
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v1" order={1}>
                 <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
-                  {/* Tabs */}
-                  <div className="flex items-center gap-2 px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                  {/* Breadcrumbs + Tabs */}
+                  <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                    {/* Breadcrumbs */}
+                    <ExploreBreadcrumbs className="mb-2" />
+                    
+                    {/* Tabs */}
+                    <div className="flex items-center gap-2">
                     {exploreTabs.map((tab) => (
                       <button
                         key={tab.value}
@@ -268,6 +284,7 @@ export function ExploreV1() {
                         {tab.label}
                       </button>
                     ))}
+                    </div>
                   </div>
 
                   {/* Tab Content */}

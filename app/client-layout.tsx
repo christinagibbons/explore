@@ -18,6 +18,7 @@ import { WatchProvider } from "@/components/watch/watch-context"
 import { CreatePlaylistModal } from "@/components/create-playlist-modal"
 import { Toaster } from "@/components/ui/toaster"
 import { ExploreProvider } from "@/lib/explore-context"
+import { BreadcrumbProvider } from "@/lib/breadcrumb-context"
 
 function ClientLayoutInner({ 
   isWatchPage,
@@ -86,14 +87,16 @@ export default function ClientLayout({
           <LibraryProvider>
             <WatchProvider>
               <ExploreProvider>
-                <SidebarProvider defaultOpen={true}>
-                  <ClientLayoutInner isWatchPage={isWatchPage} isExplorePage={isExplorePage} searchValue={searchValue} setSearchValue={setSearchValue} router={router}>
-                    {children}
-                  </ClientLayoutInner>
-                  <CreatePlaylistModal />
-                  <Toaster />
-                  <Analytics />
-                </SidebarProvider>
+                <BreadcrumbProvider>
+                  <SidebarProvider defaultOpen={true}>
+                    <ClientLayoutInner isWatchPage={isWatchPage} isExplorePage={isExplorePage} searchValue={searchValue} setSearchValue={setSearchValue} router={router}>
+                      {children}
+                    </ClientLayoutInner>
+                    <CreatePlaylistModal />
+                    <Toaster />
+                    <Analytics />
+                  </SidebarProvider>
+                </BreadcrumbProvider>
               </ExploreProvider>
             </WatchProvider>
           </LibraryProvider>
