@@ -9,7 +9,10 @@ import { nameToSlug } from "@/lib/athletes-data"
 import { getTeamForAthlete } from "@/lib/mock-teams"
 import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import type { Athlete } from "@/types/athlete"
+import type { Team } from "@/lib/sports-data"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -180,11 +183,24 @@ interface AthleteProfilePageProps {
 
 export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
+  const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const breadcrumbContext = useBreadcrumbContextOptional()
 
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
   const teamInfo = useMemo(() => getTeamForAthlete(athlete.id), [athlete.id])
+  
+  // Handle closing the team preview
+  const handleCloseTeamPreview = () => {
+    setPreviewTeam(null)
+  }
+  
+  // Handle opening the team preview
+  const handleTeamClick = () => {
+    if (teamInfo) {
+      setPreviewTeam(teamInfo)
+    }
+  }
 
   // Generate slug for routing
   const athleteSlug = nameToSlug(athlete.name)
@@ -225,21 +241,31 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
-      {/* Breadcrumbs */}
-      {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
-        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 py-2">
-            <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
-          </div>
-        </div>
-      )}
+    <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+      <ResizablePanel 
+        defaultSize={previewTeam ? 60 : 100} 
+        minSize={45} 
+        id="athlete-main-panel" 
+        order={1}
+      >
+        <div className={cn(
+          "h-full overflow-y-auto bg-background",
+          previewTeam && "pr-0"
+        )}>
+          {/* Breadcrumbs */}
+          {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
+            <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+              <div className="max-w-6xl mx-auto px-4 py-2">
+                <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+              </div>
+            </div>
+          )}
 
-      {/* Header */}
-      <header className={cn(
-        "border-b border-border bg-background/95 backdrop-blur-sm",
-        (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
-      )}>
+          {/* Header */}
+          <header className={cn(
+            "border-b border-border bg-background/95 backdrop-blur-sm",
+            (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
+          )}>
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -252,12 +278,12 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
               <h1 className="text-xl font-bold text-foreground">{athlete.name}</h1>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 {teamInfo ? (
-                  <Link 
-                    href={`/teams/${teamInfo.id}`}
+                  <button 
+                    onClick={handleTeamClick}
                     className="text-primary font-medium hover:underline"
                   >
                     {teamName}
-                  </Link>
+                  </button>
                 ) : (
                   <span className="text-primary font-medium">{teamName}</span>
                 )}
@@ -496,9 +522,32 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
                 <p className="text-muted-foreground">{profileTab} content coming soon.</p>
               </div>
             )}
-        </div>
-      </main>
-    </div>
+          </div>
+        </main>
+      </div>
+      </ResizablePanel>
+
+      {/* Team Preview Panel - Resizable */}
+      {previewTeam && (
+        <>
+          <ResizableHandle className="w-[8px] bg-transparent border-0 after:hidden before:hidden [&>div]:hidden" />
+          <ResizablePanel
+            defaultSize={40}
+            minSize={30}
+            maxSize={55}
+            id="athlete-team-preview-panel"
+            order={2}
+          >
+            <div className="h-full py-3 pr-3 pl-0">
+              <PreviewModuleV1
+                team={previewTeam}
+                onClose={handleCloseTeamPreview}
+              />
+            </div>
+          </ResizablePanel>
+        </>
+      )}
+    </ResizablePanelGroup>
   )
 }
 
