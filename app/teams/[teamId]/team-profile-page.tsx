@@ -12,11 +12,12 @@ import { findTeamById } from "@/lib/games-context"
 import { nameToSlug } from "@/lib/athletes-data"
 import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
-import { PreviewModule } from "@/components/preview-module"
+import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
 import { Play, ChevronRight, ChevronLeft } from "lucide-react"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
+import type { ImperativePanelHandle } from "react-resizable-panels"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -149,7 +150,23 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
   const [activeTab, setActiveTab] = useState<TeamProfileTab>("Overview")
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
   const highlightsRef = useRef<HTMLDivElement>(null)
+  const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const breadcrumbContext = useBreadcrumbContextOptional()
+  
+  // Expand preview panel when athlete is selected
+  useEffect(() => {
+    if (previewAthlete && previewPanelRef.current) {
+      previewPanelRef.current.expand()
+    }
+  }, [previewAthlete])
+  
+  // Handle closing the preview
+  const handleClosePreview = () => {
+    setPreviewAthlete(null)
+    if (previewPanelRef.current) {
+      previewPanelRef.current.collapse()
+    }
+  }
 
   // Push team anchor to breadcrumbs when the page loads
   // Wait for hydration before checking breadcrumbs to ensure sessionStorage state is loaded
@@ -288,22 +305,24 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-background">
-      {/* Breadcrumbs */}
-      {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
-        <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-6 py-2">
-            <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
-          </div>
-        </div>
-      )}
+    <ResizablePanelGroup direction="horizontal" className="h-full">
+      <ResizablePanel defaultSize={100} minSize={50} id="team-main-panel" order={1}>
+        <div className="h-full overflow-y-auto bg-background">
+          {/* Breadcrumbs */}
+          {breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0 && (
+            <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+              <div className="max-w-6xl mx-auto px-6 py-2">
+                <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+              </div>
+            </div>
+          )}
 
-      {/* Sticky Header */}
-      <header className={cn(
-        "border-b border-border bg-background/95 backdrop-blur-sm",
-        (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
-      )}>
-        <div className="max-w-6xl mx-auto px-6 py-4">
+          {/* Sticky Header */}
+          <header className={cn(
+            "border-b border-border bg-background/95 backdrop-blur-sm",
+            (!breadcrumbContext || breadcrumbContext.breadcrumbs.length === 0) && "sticky top-0 z-50"
+          )}>
+            <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -638,17 +657,31 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
             <p className="text-muted-foreground">{activeTab} content coming soon.</p>
           </div>
         )}
-      </main>
+        </main>
+      </div>
+      </ResizablePanel>
 
-      {/* Athlete Preview Panel */}
-      {previewAthlete && (
-        <div className="fixed inset-y-0 right-0 w-[500px] bg-background border-l border-border shadow-xl z-50">
-          <PreviewModule
-            previewAthlete={previewAthlete}
-            onClose={() => setPreviewAthlete(null)}
-          />
+      {/* Athlete Preview Panel - Resizable */}
+      <ResizableHandle className="w-[8px] bg-transparent border-0 after:hidden before:hidden [&>div]:hidden" />
+      <ResizablePanel
+        ref={previewPanelRef}
+        defaultSize={0}
+        minSize={30}
+        maxSize={50}
+        collapsible
+        collapsedSize={0}
+        id="team-preview-panel"
+        order={2}
+      >
+        <div className="h-full py-3 pr-3 pl-0">
+          {previewAthlete && (
+            <PreviewModuleV1
+              athlete={previewAthlete}
+              onClose={handleClosePreview}
+            />
+          )}
         </div>
-      )}
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   )
 }
