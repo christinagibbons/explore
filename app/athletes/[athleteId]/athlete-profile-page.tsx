@@ -190,38 +190,39 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
   const athleteSlug = nameToSlug(athlete.name)
 
   // Push athlete anchor to breadcrumbs when the page loads
-  // If no breadcrumbs exist (direct navigation), set up minimal meaningful hierarchy
+  // Wait for hydration before checking breadcrumbs to ensure sessionStorage state is loaded
   useEffect(() => {
-    if (breadcrumbContext) {
-      console.log("[v0] AthleteProfilePage mount - current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
-      
-      // Check if this athlete is already in the breadcrumbs (prevents duplicates on re-renders)
-      const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
-        b => b.specificType === "athlete" && b.id === athleteSlug
-      )
-      
-      if (alreadyInBreadcrumbs) {
-        console.log("[v0] Athlete already in breadcrumbs, skipping")
-        return
-      }
-      
-      // If no collection anchor exists (direct navigation), set up "Athletes" as the starting point
-      if (breadcrumbContext.breadcrumbs.length === 0) {
-        console.log("[v0] No breadcrumbs - setting Athletes as collection anchor")
-        breadcrumbContext.setCollectionAnchor("athletes")
-      }
-      
-      console.log("[v0] Pushing athlete anchor:", athlete.name, athleteSlug)
-      breadcrumbContext.pushAnchor({
-        anchorType: "entity",
-        specificType: "athlete",
-        label: athlete.name,
-        id: athleteSlug,
-      })
+    if (!breadcrumbContext || !breadcrumbContext.isHydrated) {
+      return
     }
-    // Only run once on mount - breadcrumbContext is stable
+    
+    console.log("[v0] AthleteProfilePage - hydrated, current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
+    
+    // Check if this athlete is already in the breadcrumbs (prevents duplicates on re-renders)
+    const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
+      b => b.specificType === "athlete" && b.id === athleteSlug
+    )
+    
+    if (alreadyInBreadcrumbs) {
+      console.log("[v0] Athlete already in breadcrumbs, skipping")
+      return
+    }
+    
+    // If no collection anchor exists (direct navigation), set up "Athletes" as the starting point
+    if (breadcrumbContext.breadcrumbs.length === 0) {
+      console.log("[v0] No breadcrumbs - setting Athletes as collection anchor")
+      breadcrumbContext.setCollectionAnchor("athletes")
+    }
+    
+    console.log("[v0] Pushing athlete anchor:", athlete.name, athleteSlug)
+    breadcrumbContext.pushAnchor({
+      anchorType: "entity",
+      specificType: "athlete",
+      label: athlete.name,
+      id: athleteSlug,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [athleteSlug])
+  }, [athleteSlug, breadcrumbContext?.isHydrated])
 
   // Handle breadcrumb navigation
   const handleBreadcrumbNavigate = () => {

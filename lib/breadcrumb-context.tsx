@@ -14,7 +14,7 @@
  * - Content: Full-page content views (game, playlist, clip)
  */
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 
 // Anchor types in the explore experience
 export type AnchorType = "collection" | "entity" | "content"
@@ -41,6 +41,8 @@ export interface BreadcrumbAnchor {
 interface BreadcrumbContextValue {
   // Current breadcrumb trail
   breadcrumbs: BreadcrumbAnchor[]
+  // Whether the context has been hydrated from storage
+  isHydrated: boolean
   // Set a new collection anchor (resets the trail)
   setCollectionAnchor: (collection: CollectionType, label?: string) => void
   // Push an entity or content anchor (adds to trail)
@@ -55,12 +57,13 @@ interface BreadcrumbContextValue {
 
 const BreadcrumbContext = createContext<BreadcrumbContextValue | null>(null)
 
+const STORAGE_KEY = "explore-breadcrumbs"
+
 // Helper to generate href for different anchor types
 function generateHref(anchor: Omit<BreadcrumbAnchor, "href">): string {
   const { anchorType, specificType, id } = anchor
   
   if (anchorType === "collection") {
-    // Collections go back to explore (tab state is managed client-side)
     return "/explore"
   }
   
@@ -99,11 +102,54 @@ const COLLECTION_LABELS: Record<CollectionType, string> = {
   search: "Search",
 }
 
+// Helper to save breadcrumbs to sessionStorage
+function saveBreadcrumbs(breadcrumbs: BreadcrumbAnchor[]) {
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(breadcrumbs))
+      console.log("[v0] Saved breadcrumbs to storage:", breadcrumbs.map(b => b.label))
+    } catch (e) {
+      console.error("[v0] Failed to save breadcrumbs:", e)
+    }
+  }
+}
+
+// Helper to load breadcrumbs from sessionStorage
+function loadBreadcrumbs(): BreadcrumbAnchor[] {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        console.log("[v0] Loaded breadcrumbs from storage:", parsed.map((b: BreadcrumbAnchor) => b.label))
+        return parsed
+      }
+    } catch (e) {
+      console.error("[v0] Failed to load breadcrumbs:", e)
+    }
+  }
+  return []
+}
+
 export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbAnchor[]>([])
+  const [isHydrated, setIsHydrated] = useState(false)
   
-  // Debug: log breadcrumb state changes
-  console.log("[v0] BreadcrumbProvider render - breadcrumbs:", breadcrumbs.map(b => b.label))
+  // Hydrate from sessionStorage on mount
+  useEffect(() => {
+    const stored = loadBreadcrumbs()
+    if (stored.length > 0) {
+      setBreadcrumbs(stored)
+    }
+    setIsHydrated(true)
+  }, [])
+
+  // Save to sessionStorage whenever breadcrumbs change (after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      saveBreadcrumbs(breadcrumbs)
+    }
+  }, [breadcrumbs, isHydrated])
 
   // Set collection anchor - this resets the breadcrumb trail to just the collection
   const setCollectionAnchor = useCallback((collection: CollectionType, label?: string) => {
@@ -162,6 +208,7 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
     <BreadcrumbContext.Provider
       value={{
         breadcrumbs,
+        isHydrated,
         setCollectionAnchor,
         pushAnchor,
         navigateTo,

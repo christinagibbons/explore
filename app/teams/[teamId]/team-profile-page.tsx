@@ -149,38 +149,39 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
   const breadcrumbContext = useBreadcrumbContextOptional()
 
   // Push team anchor to breadcrumbs when the page loads
-  // If no breadcrumbs exist (direct navigation), set up minimal meaningful hierarchy
+  // Wait for hydration before checking breadcrumbs to ensure sessionStorage state is loaded
   useEffect(() => {
-    if (breadcrumbContext) {
-      console.log("[v0] TeamProfilePage mount - current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
-      
-      // Check if this team is already in the breadcrumbs (prevents duplicates on re-renders)
-      const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
-        b => b.specificType === "team" && b.id === team.id
-      )
-      
-      if (alreadyInBreadcrumbs) {
-        console.log("[v0] Team already in breadcrumbs, skipping")
-        return
-      }
-      
-      // If no collection anchor exists (direct navigation), set up "Teams" as the starting point
-      if (breadcrumbContext.breadcrumbs.length === 0) {
-        console.log("[v0] No breadcrumbs - setting Teams as collection anchor")
-        breadcrumbContext.setCollectionAnchor("teams")
-      }
-      
-      console.log("[v0] Pushing team anchor:", team.name, team.id)
-      breadcrumbContext.pushAnchor({
-        anchorType: "entity",
-        specificType: "team",
-        label: team.name,
-        id: team.id,
-      })
+    if (!breadcrumbContext || !breadcrumbContext.isHydrated) {
+      return
     }
-    // Only run once on mount - breadcrumbContext is stable
+    
+    console.log("[v0] TeamProfilePage - hydrated, current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
+    
+    // Check if this team is already in the breadcrumbs (prevents duplicates on re-renders)
+    const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
+      b => b.specificType === "team" && b.id === team.id
+    )
+    
+    if (alreadyInBreadcrumbs) {
+      console.log("[v0] Team already in breadcrumbs, skipping")
+      return
+    }
+    
+    // If no collection anchor exists (direct navigation), set up "Teams" as the starting point
+    if (breadcrumbContext.breadcrumbs.length === 0) {
+      console.log("[v0] No breadcrumbs - setting Teams as collection anchor")
+      breadcrumbContext.setCollectionAnchor("teams")
+    }
+    
+    console.log("[v0] Pushing team anchor:", team.name, team.id)
+    breadcrumbContext.pushAnchor({
+      anchorType: "entity",
+      specificType: "team",
+      label: team.name,
+      id: team.id,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [team.id])
+  }, [team.id, breadcrumbContext?.isHydrated])
 
   // Handle breadcrumb navigation
   const handleBreadcrumbNavigate = () => {
