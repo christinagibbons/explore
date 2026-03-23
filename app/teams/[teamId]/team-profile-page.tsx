@@ -152,10 +152,25 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
   // If no breadcrumbs exist (direct navigation), set up minimal meaningful hierarchy
   useEffect(() => {
     if (breadcrumbContext) {
-      // If no collection anchor exists, set up "Teams" as the starting point
+      console.log("[v0] TeamProfilePage mount - current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
+      
+      // Check if this team is already in the breadcrumbs (prevents duplicates on re-renders)
+      const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
+        b => b.specificType === "team" && b.id === team.id
+      )
+      
+      if (alreadyInBreadcrumbs) {
+        console.log("[v0] Team already in breadcrumbs, skipping")
+        return
+      }
+      
+      // If no collection anchor exists (direct navigation), set up "Teams" as the starting point
       if (breadcrumbContext.breadcrumbs.length === 0) {
+        console.log("[v0] No breadcrumbs - setting Teams as collection anchor")
         breadcrumbContext.setCollectionAnchor("teams")
       }
+      
+      console.log("[v0] Pushing team anchor:", team.name, team.id)
       breadcrumbContext.pushAnchor({
         anchorType: "entity",
         specificType: "team",

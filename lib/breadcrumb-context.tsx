@@ -104,6 +104,7 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
 
   // Set collection anchor - this resets the breadcrumb trail to just the collection
   const setCollectionAnchor = useCallback((collection: CollectionType, label?: string) => {
+    console.log("[v0] setCollectionAnchor called with:", collection)
     const anchor: BreadcrumbAnchor = {
       anchorType: "collection",
       specificType: collection,
@@ -115,18 +116,23 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
 
   // Push a new anchor to the trail
   const pushAnchor = useCallback((anchor: Omit<BreadcrumbAnchor, "href"> & { href?: string }) => {
+    console.log("[v0] pushAnchor called with:", anchor.label, anchor.specificType)
     const fullAnchor: BreadcrumbAnchor = {
       ...anchor,
       href: anchor.href || generateHref(anchor),
     }
     
     setBreadcrumbs(prev => {
+      console.log("[v0] pushAnchor - prev breadcrumbs:", prev.map(b => b.label))
       // Don't add duplicate consecutive anchors
       const last = prev[prev.length - 1]
       if (last && last.specificType === fullAnchor.specificType && last.id === fullAnchor.id) {
+        console.log("[v0] Skipping duplicate anchor")
         return prev
       }
-      return [...prev, fullAnchor]
+      const result = [...prev, fullAnchor]
+      console.log("[v0] New breadcrumbs:", result.map(b => b.label))
+      return result
     })
   }, [])
 
