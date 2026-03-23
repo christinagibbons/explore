@@ -101,6 +101,9 @@ const COLLECTION_LABELS: Record<CollectionType, string> = {
 
 export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbAnchor[]>([])
+  
+  // Debug: log breadcrumb state changes
+  console.log("[v0] BreadcrumbProvider render - breadcrumbs:", breadcrumbs.map(b => b.label))
 
   // Set collection anchor - this resets the breadcrumb trail to just the collection
   const setCollectionAnchor = useCallback((collection: CollectionType, label?: string) => {
