@@ -196,25 +196,20 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
       return
     }
     
-    console.log("[v0] AthleteProfilePage - hydrated, current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
-    
     // Check if this athlete is already in the breadcrumbs (prevents duplicates on re-renders)
     const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
       b => b.specificType === "athlete" && b.id === athleteSlug
     )
     
     if (alreadyInBreadcrumbs) {
-      console.log("[v0] Athlete already in breadcrumbs, skipping")
       return
     }
     
     // If no collection anchor exists (direct navigation), set up "Athletes" as the starting point
     if (breadcrumbContext.breadcrumbs.length === 0) {
-      console.log("[v0] No breadcrumbs - setting Athletes as collection anchor")
       breadcrumbContext.setCollectionAnchor("athletes")
     }
     
-    console.log("[v0] Pushing athlete anchor:", athlete.name, athleteSlug)
     breadcrumbContext.pushAnchor({
       anchorType: "entity",
       specificType: "athlete",

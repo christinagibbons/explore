@@ -12,9 +12,11 @@ import { findTeamById } from "@/lib/games-context"
 import { nameToSlug } from "@/lib/athletes-data"
 import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { PreviewModule } from "@/components/preview-module"
 import { Play, ChevronRight, ChevronLeft } from "lucide-react"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -145,6 +147,7 @@ interface TeamProfilePageProps {
 
 export function TeamProfilePage({ team }: TeamProfilePageProps) {
   const [activeTab, setActiveTab] = useState<TeamProfileTab>("Overview")
+  const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
   const highlightsRef = useRef<HTMLDivElement>(null)
   const breadcrumbContext = useBreadcrumbContextOptional()
 
@@ -155,25 +158,20 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
       return
     }
     
-    console.log("[v0] TeamProfilePage - hydrated, current breadcrumbs:", breadcrumbContext.breadcrumbs.map(b => b.label))
-    
     // Check if this team is already in the breadcrumbs (prevents duplicates on re-renders)
     const alreadyInBreadcrumbs = breadcrumbContext.breadcrumbs.some(
       b => b.specificType === "team" && b.id === team.id
     )
     
     if (alreadyInBreadcrumbs) {
-      console.log("[v0] Team already in breadcrumbs, skipping")
       return
     }
     
     // If no collection anchor exists (direct navigation), set up "Teams" as the starting point
     if (breadcrumbContext.breadcrumbs.length === 0) {
-      console.log("[v0] No breadcrumbs - setting Teams as collection anchor")
       breadcrumbContext.setCollectionAnchor("teams")
     }
     
-    console.log("[v0] Pushing team anchor:", team.name, team.id)
     breadcrumbContext.pushAnchor({
       anchorType: "entity",
       specificType: "team",
@@ -611,10 +609,10 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   {topPlayers.map((player, idx) => (
-                    <Link
+                    <button
                       key={player.id || idx}
-                      href={`/athletes/${nameToSlug(player.name)}`}
-                      className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors"
+                      onClick={() => setPreviewAthlete(player as Athlete & { id: string })}
+                      className="rounded-lg border border-border p-4 hover:bg-muted/30 transition-colors text-left"
                     >
                       <p className="text-xs font-semibold text-primary mb-1">{player.statLabel}</p>
                       <p className="text-2xl font-bold text-foreground">{player.statValue}</p>
@@ -627,7 +625,7 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
                           <p className="text-[10px] text-muted-foreground">{player.position} · #{player.jersey_number}</p>
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -641,6 +639,16 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
           </div>
         )}
       </main>
+
+      {/* Athlete Preview Panel */}
+      {previewAthlete && (
+        <div className="fixed inset-y-0 right-0 w-[500px] bg-background border-l border-border shadow-xl z-50">
+          <PreviewModule
+            previewAthlete={previewAthlete}
+            onClose={() => setPreviewAthlete(null)}
+          />
+        </div>
+      )}
     </div>
   )
 }

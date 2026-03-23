@@ -107,9 +107,8 @@ function saveBreadcrumbs(breadcrumbs: BreadcrumbAnchor[]) {
   if (typeof window !== "undefined") {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(breadcrumbs))
-      console.log("[v0] Saved breadcrumbs to storage:", breadcrumbs.map(b => b.label))
     } catch (e) {
-      console.error("[v0] Failed to save breadcrumbs:", e)
+      // Silently fail
     }
   }
 }
@@ -120,12 +119,10 @@ function loadBreadcrumbs(): BreadcrumbAnchor[] {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const parsed = JSON.parse(stored)
-        console.log("[v0] Loaded breadcrumbs from storage:", parsed.map((b: BreadcrumbAnchor) => b.label))
-        return parsed
+        return JSON.parse(stored)
       }
     } catch (e) {
-      console.error("[v0] Failed to load breadcrumbs:", e)
+      // Silently fail
     }
   }
   return []
@@ -153,7 +150,6 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
 
   // Set collection anchor - this resets the breadcrumb trail to just the collection
   const setCollectionAnchor = useCallback((collection: CollectionType, label?: string) => {
-    console.log("[v0] setCollectionAnchor called with:", collection)
     const anchor: BreadcrumbAnchor = {
       anchorType: "collection",
       specificType: collection,
@@ -165,23 +161,18 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
 
   // Push a new anchor to the trail
   const pushAnchor = useCallback((anchor: Omit<BreadcrumbAnchor, "href"> & { href?: string }) => {
-    console.log("[v0] pushAnchor called with:", anchor.label, anchor.specificType)
     const fullAnchor: BreadcrumbAnchor = {
       ...anchor,
       href: anchor.href || generateHref(anchor),
     }
     
     setBreadcrumbs(prev => {
-      console.log("[v0] pushAnchor - prev breadcrumbs:", prev.map(b => b.label))
       // Don't add duplicate consecutive anchors
       const last = prev[prev.length - 1]
       if (last && last.specificType === fullAnchor.specificType && last.id === fullAnchor.id) {
-        console.log("[v0] Skipping duplicate anchor")
         return prev
       }
-      const result = [...prev, fullAnchor]
-      console.log("[v0] New breadcrumbs:", result.map(b => b.label))
-      return result
+      return [...prev, fullAnchor]
     })
   }, [])
 
