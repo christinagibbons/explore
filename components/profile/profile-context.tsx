@@ -2,32 +2,53 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react"
 
+type ProfileModule = "clips" | "games" | "reports"
+
 interface ProfileContextType {
   // Module visibility
   visibleModules: {
+    clips: boolean
+    games: boolean
     reports: boolean
   }
-  toggleModule: (module: "reports") => void
+  toggleModule: (module: ProfileModule) => void
   
   // Panel sizes
-  reportsPanelSize: number
-  setReportsPanelSize: (size: number) => void
+  modulePanelSize: number
+  setModulePanelSize: (size: number) => void
+  
+  // Active module (for the panel content)
+  activeModule: ProfileModule | null
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [visibleModules, setVisibleModules] = useState({
+    clips: false,
+    games: false,
     reports: false,
   })
   
-  const [reportsPanelSize, setReportsPanelSize] = useState(30)
+  const [modulePanelSize, setModulePanelSize] = useState(35)
+  const [activeModule, setActiveModule] = useState<ProfileModule | null>(null)
   
-  const toggleModule = (module: "reports") => {
-    setVisibleModules((prev) => ({
-      ...prev,
-      [module]: !prev[module],
-    }))
+  const toggleModule = (module: ProfileModule) => {
+    setVisibleModules((prev) => {
+      const newState = {
+        clips: false,
+        games: false,
+        reports: false,
+        [module]: !prev[module],
+      }
+      // Track active module
+      if (newState[module]) {
+        setActiveModule(module)
+      } else {
+        setActiveModule(null)
+      }
+      return newState
+    })
   }
   
   return (
@@ -35,8 +56,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       value={{
         visibleModules,
         toggleModule,
-        reportsPanelSize,
-        setReportsPanelSize,
+        modulePanelSize,
+        setModulePanelSize,
+        activeModule,
       }}
     >
       {children}

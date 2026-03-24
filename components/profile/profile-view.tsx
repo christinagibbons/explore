@@ -1,40 +1,60 @@
 "use client"
 
-// Profile view component - displays athlete overview with collapsible reports panel
-import { useEffect, useRef } from "react"
+// Profile view component - displays athlete overview with collapsible module panels
+import { useEffect, useRef, useMemo } from "react"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { ProfileProvider, useProfileContext } from "@/components/profile/profile-context"
 import { ProfileToolbar } from "@/components/profile/profile-toolbar"
 import { AthleteOverview } from "@/components/profile/athlete-overview"
 import { ReportsModule } from "@/components/reports-module"
+import { GridModule } from "@/components/grid-module"
+import { GamesModule } from "@/components/games-module"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import type { Athlete } from "@/types/athlete"
-import type { Team } from "@/lib/sports-data"
+import type { Team, Game } from "@/lib/sports-data"
+import type { PlayData } from "@/lib/play-data"
 
 interface ProfileViewProps {
   athlete: Athlete & { id: string }
   onNavigateToTeam?: (team: Team) => void
+  onClickClip?: (play: PlayData) => void
+  onClickGame?: (game: Game) => void
   onClose?: () => void
 }
 
-function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps) {
+function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, onClose }: ProfileViewProps) {
   const { 
     visibleModules, 
-    reportsPanelSize,
-    setReportsPanelSize,
+    modulePanelSize,
+    setModulePanelSize,
+    activeModule,
   } = useProfileContext()
 
-  const reportsPanelRef = useRef<ImperativePanelHandle>(null)
-
-  // Collapse/expand reports panel based on visibility
-  useEffect(() => {
-    if (visibleModules.reports) {
-      reportsPanelRef.current?.expand()
-    } else {
-      reportsPanelRef.current?.collapse()
+  const modulePanelRef = useRef<ImperativePanelHandle>(null)
+  
+  // Mock dataset for athlete clips
+  const athleteClipsDataset = useMemo(() => {
+    const plays = MOCK_DATASETS[0]?.plays.slice(0, 30) || []
+    return {
+      id: `athlete-${athlete.id}-clips`,
+      name: `${athlete.name} Clips`,
+      plays,
     }
-  }, [visibleModules.reports])
+  }, [athlete.id, athlete.name])
+  
+  // Check if any module is visible
+  const isModulePanelOpen = visibleModules.clips || visibleModules.games || visibleModules.reports
+
+  // Collapse/expand module panel based on visibility
+  useEffect(() => {
+    if (isModulePanelOpen) {
+      modulePanelRef.current?.expand()
+    } else {
+      modulePanelRef.current?.collapse()
+    }
+  }, [isModulePanelOpen])
 
   const handleBreadcrumbNavigate = () => {
     if (onClose) {
@@ -52,7 +72,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps
         >
           {/* LEFT: Overview (primary content) */}
           <ResizablePanel
-            defaultSize={100 - (visibleModules.reports ? reportsPanelSize : 0)}
+            defaultSize={100 - (isModulePanelOpen ? modulePanelSize : 0)}
             minSize={40}
             id="profile-main-panel"
             order={1}
@@ -74,21 +94,36 @@ function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps
 
           <ResizableHandle className="bg-transparent" />
 
-          {/* RIGHT: Reports panel - collapsible */}
+          {/* RIGHT: Module panel - collapsible (Clips, Games, or Reports) */}
           <ResizablePanel
-            ref={reportsPanelRef}
-            defaultSize={reportsPanelSize}
-            minSize={20}
+            ref={modulePanelRef}
+            defaultSize={modulePanelSize}
+            minSize={25}
             collapsible
             collapsedSize={0}
             onResize={(size) => {
-              if (size > 0) setReportsPanelSize(size)
+              if (size > 0) setModulePanelSize(size)
             }}
-            id="profile-reports-panel"
+            id="profile-module-panel"
             order={2}
           >
             <div className="h-full overflow-hidden ml-3">
-              <ReportsModule />
+              {activeModule === "clips" && (
+                <GridModule
+                  showTabs={false}
+                  dataset={athleteClipsDataset}
+                  onClickPlay={onClickClip}
+                />
+              )}
+              {activeModule === "games" && (
+                <GamesModule
+                  selectedLeagues={[athlete.league]}
+                  onClickGame={onClickGame}
+                />
+              )}
+              {activeModule === "reports" && (
+                <ReportsModule />
+              )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
