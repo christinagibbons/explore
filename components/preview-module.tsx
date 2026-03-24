@@ -2266,9 +2266,10 @@ interface AthletePreviewProps {
   onClose: () => void
   hideHeader?: boolean
   onNavigateToTeam?: (team: Team) => void
+  onViewFullProfile?: (athlete: Athlete & { id: string }) => void
 }
 
-function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: AthletePreviewProps) {
+function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam, onViewFullProfile }: AthletePreviewProps) {
   const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
@@ -2418,7 +2419,13 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam }: Athl
   </Button>
   <Button
   className="flex-1 font-semibold"
-  onClick={() => router.push(`/athletes/${athleteSlug}`)}
+  onClick={() => {
+    if (onViewFullProfile && athlete.id) {
+      onViewFullProfile(athlete as Athlete & { id: string })
+    } else {
+      router.push(`/athletes/${athleteSlug}`)
+    }
+  }}
   >
   View Full Profile
   </Button>
@@ -2442,6 +2449,8 @@ interface PreviewModuleProps {
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
   onNavigateToGame?: (game: Game) => void
   onNavigateToClip?: (play: PlayData) => void
+  // Callback for "View Full Profile" - if provided, called instead of router.push
+  onViewFullAthleteProfile?: (athlete: Athlete & { id: string }) => void
   // Hide the internal header (used when wrapped by breadcrumb navigation)
   hideHeader?: boolean
 }
@@ -2456,11 +2465,12 @@ export function PreviewModule({
   onNavigateToAthlete,
   onNavigateToGame,
   onNavigateToClip,
+  onViewFullAthleteProfile,
   hideHeader,
 }: PreviewModuleProps) {
   // If athlete is provided, render AthletePreview
   if (athlete) {
-    return <AthletePreview athlete={athlete} onClose={onClose} hideHeader={hideHeader} onNavigateToTeam={onNavigateToTeam} />
+    return <AthletePreview athlete={athlete} onClose={onClose} hideHeader={hideHeader} onNavigateToTeam={onNavigateToTeam} onViewFullProfile={onViewFullAthleteProfile} />
   }
 
   // If team is provided, render TeamPreview

@@ -9,6 +9,7 @@ import { GamesModule } from "@/components/games-module"
 import { TeamsModule } from "@/components/teams-module"
 import { AthletesModule } from "@/components/athletes-module"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
+import { AthleteProfileModules } from "@/components/explore/athlete-profile-modules"
 import { getAllUniqueClips } from "@/lib/mock-datasets"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
 import { useExploreFilters } from "@/hooks/use-explore-filters"
@@ -108,8 +109,10 @@ export function ExploreV1() {
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
+  // Focused entity state - when an entity becomes the main content (full profile view)
+  const [focusedAthlete, setFocusedAthlete] = useState<(Athlete & { id: string }) | null>(null)
   const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
-  const { setCollectionAnchor } = useBreadcrumbContext()
+  const { setCollectionAnchor, pushAnchor } = useBreadcrumbContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
 
@@ -181,6 +184,27 @@ export function ExploreV1() {
     setPreviewGame(null)
     setPreviewTeam(null)
     setPreviewAthlete(null)
+  }
+
+  // Handler for when an athlete becomes the focused entity (full profile in modules layout)
+  const handleFocusAthlete = (athlete: Athlete & { id: string }) => {
+    setFocusedAthlete(athlete)
+    setPreviewAthlete(null)
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    setPreviewTeam(null)
+    // Push athlete to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "athlete",
+      label: athlete.name,
+      id: athlete.id,
+    })
+  }
+
+  // Handler to go back from focused athlete to the list
+  const handleCloseFocusedAthlete = () => {
+    setFocusedAthlete(null)
   }
 
   useEffect(() => {
@@ -262,33 +286,48 @@ export function ExploreV1() {
           <ResizablePanel defaultSize={78}>
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v1" order={1}>
-                <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
-                  {/* Breadcrumbs + Tabs */}
-                  <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
-                    {/* Breadcrumbs */}
-                    <ExploreBreadcrumbs className="mb-2" />
-                    
-                    {/* Tabs */}
-                    <div className="flex items-center gap-2">
-                    {exploreTabs.map((tab) => (
-                      <button
-                        key={tab.value}
-                        onClick={() => setActiveTab(tab.value)}
-                        className={cn(
-                          "px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200",
-                          activeTab === tab.value
-                            ? "bg-foreground text-background shadow-sm"
-                            : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
+                <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && !focusedAthlete && "pr-3")}>
+                  {/* Breadcrumbs + Tabs (hidden when focused on entity) */}
+                  {!focusedAthlete && (
+                    <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                      {/* Breadcrumbs */}
+                      <ExploreBreadcrumbs className="mb-2" />
+                      
+                      {/* Tabs */}
+                      <div className="flex items-center gap-2">
+                      {exploreTabs.map((tab) => (
+                        <button
+                          key={tab.value}
+                          onClick={() => setActiveTab(tab.value)}
+                          className={cn(
+                            "px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200",
+                            activeTab === tab.value
+                              ? "bg-foreground text-background shadow-sm"
+                              : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                          )}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Tab Content */}
-                  {activeTab === "clips" ? (
+                  {/* Focused Athlete - Module Layout */}
+                  {focusedAthlete ? (
+                    <div className="flex-1 bg-background rounded-lg overflow-hidden">
+                      {/* Breadcrumbs for focused athlete */}
+                      <div className="px-4 pt-3 pb-2 border-b border-border">
+                        <ExploreBreadcrumbs onNavigate={() => handleCloseFocusedAthlete()} />
+                      </div>
+                      <AthleteProfileModules
+                        athlete={focusedAthlete}
+                        onNavigateToTeam={handleTeamClick}
+                        onClickClip={handleClipClick}
+                        activeClipId={previewPlay?.id}
+                      />
+                    </div>
+                  ) : activeTab === "clips" ? (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden relative">
                       <GridModule
                         showTabs={false}
@@ -372,6 +411,7 @@ export function ExploreV1() {
                       team={previewTeam || undefined}
                       athlete={previewAthlete || undefined}
                       onClose={handleClosePreview}
+                      onFocusAthlete={handleFocusAthlete}
                     />
                   )}
                 </div>
