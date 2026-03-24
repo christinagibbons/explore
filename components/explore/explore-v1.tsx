@@ -9,7 +9,7 @@ import { GamesModule } from "@/components/games-module"
 import { TeamsModule } from "@/components/teams-module"
 import { AthletesModule } from "@/components/athletes-module"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
-import { AthleteProfileModules } from "@/components/explore/athlete-profile-modules"
+import { ProfileView } from "@/components/profile/profile-view"
 import { getAllUniqueClips } from "@/lib/mock-datasets"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
 import { useExploreFilters } from "@/hooks/use-explore-filters"
@@ -240,6 +240,19 @@ export function ExploreV1() {
     [allClipsDataset, filteredPlays]
   )
 
+  // If an athlete is focused, render the ProfileView which has its own toolbar + module system
+  if (focusedAthlete) {
+    return (
+      <div className="h-full w-full bg-sidebar">
+        <ProfileView
+          athlete={focusedAthlete}
+          onNavigateToTeam={handleTeamClick}
+          onClose={handleCloseFocusedAthlete}
+        />
+      </div>
+    )
+  }
+
   return (
     <WatchProvider initialTabs={[allClipsDataset]}>
       <div className="flex flex-col h-full w-full bg-sidebar">
@@ -286,48 +299,33 @@ export function ExploreV1() {
           <ResizablePanel defaultSize={78}>
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v1" order={1}>
-                <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && !focusedAthlete && "pr-3")}>
-                  {/* Breadcrumbs + Tabs (hidden when focused on entity) */}
-                  {!focusedAthlete && (
-                    <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
-                      {/* Breadcrumbs */}
-                      <ExploreBreadcrumbs className="mb-2" />
-                      
-                      {/* Tabs */}
-                      <div className="flex items-center gap-2">
-                      {exploreTabs.map((tab) => (
-                        <button
-                          key={tab.value}
-                          onClick={() => setActiveTab(tab.value)}
-                          className={cn(
-                            "px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200",
-                            activeTab === tab.value
-                              ? "bg-foreground text-background shadow-sm"
-                              : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-                          )}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                      </div>
+                <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
+                  {/* Breadcrumbs + Tabs */}
+                  <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                    {/* Breadcrumbs */}
+                    <ExploreBreadcrumbs className="mb-2" />
+                    
+                    {/* Tabs */}
+                    <div className="flex items-center gap-2">
+                    {exploreTabs.map((tab) => (
+                      <button
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value)}
+                        className={cn(
+                          "px-4 py-1.5 text-sm font-semibold rounded-full transition-all duration-200",
+                          activeTab === tab.value
+                            ? "bg-foreground text-background shadow-sm"
+                            : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                     </div>
-                  )}
+                  </div>
 
-                  {/* Focused Athlete - Module Layout */}
-                  {focusedAthlete ? (
-                    <div className="flex-1 bg-background rounded-lg overflow-hidden">
-                      {/* Breadcrumbs for focused athlete */}
-                      <div className="px-4 pt-3 pb-2 border-b border-border">
-                        <ExploreBreadcrumbs onNavigate={() => handleCloseFocusedAthlete()} />
-                      </div>
-                      <AthleteProfileModules
-                        athlete={focusedAthlete}
-                        onNavigateToTeam={handleTeamClick}
-                        onClickClip={handleClipClick}
-                        activeClipId={previewPlay?.id}
-                      />
-                    </div>
-                  ) : activeTab === "clips" ? (
+                  {/* Tab content - only show when not focused on entity */}
+                  {activeTab === "clips" ? (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden relative">
                       <GridModule
                         showTabs={false}
