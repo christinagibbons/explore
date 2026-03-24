@@ -36,10 +36,15 @@ function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps
   const reportsPanelRef = useRef<ImperativePanelHandle>(null)
 
   // Get clips filtered for this athlete (mock - in reality this would be API call)
-  const athleteClips = useMemo(() => {
+  const athleteClipsDataset = useMemo(() => {
     // For now, return first 20 clips from mock data as "athlete clips"
-    return mockDatasets["off-rpo"]?.plays.slice(0, 20) || []
-  }, [])
+    const plays = mockDatasets["off-rpo"]?.plays.slice(0, 20) || []
+    return {
+      id: `athlete-${athlete.id}-clips`,
+      name: `${athlete.name} Clips`,
+      plays,
+    }
+  }, [athlete.id, athlete.name])
 
   // Collapse/expand panels based on visibility
   useEffect(() => {
@@ -124,7 +129,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps
                 <div className="h-full overflow-hidden m-1 ml-0 mt-0">
                   <GridModule
                     showTabs={false}
-                    dataset={athleteClips}
+                    dataset={athleteClipsDataset}
                     onClickPlay={setSelectedClip}
                     activePlayId={selectedClip?.id}
                   />
