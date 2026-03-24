@@ -40,6 +40,9 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
   // Check if any module is visible
   const isModulePanelOpen = visibleModules.clips || visibleModules.games || visibleModules.reports
   
+  // Check if any preview is open (different context - hide toolbar)
+  const isPreviewOpen = previewTeam || previewClip || previewGame
+  
   // Handle team click - open preview
   const handleTeamClick = (team: Team) => {
     setPreviewTeam(team)
@@ -150,7 +153,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
       </div>
 
       {/* Preview Panel - for team/clip/game previews (gap indicates different context) */}
-      {(previewTeam || previewClip || previewGame) && (
+      {isPreviewOpen && (
         <div className="w-[400px] shrink-0 py-3 pr-3 pl-3">
           <PreviewModuleV1
             team={previewTeam || undefined}
@@ -161,8 +164,8 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
         </div>
       )}
 
-      {/* RHS Toolbar */}
-      <ProfileToolbar />
+      {/* RHS Toolbar - hidden when preview is open (focus shifts to preview context) */}
+      {!isPreviewOpen && <ProfileToolbar />}
     </div>
   )
 }
