@@ -1,5 +1,6 @@
 "use client"
 
+// Profile view component - displays athlete overview with collapsible reports panel
 import { useEffect, useRef } from "react"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { ProfileProvider, useProfileContext } from "@/components/profile/profile-context"
