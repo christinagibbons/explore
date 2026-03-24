@@ -18,6 +18,7 @@ import type { Game } from "@/types/game"
 import { findTeamById, mockClips } from "@/lib/games-context"
 import { mockGames } from "@/lib/mock-games"
 import { getAthletesForTeam } from "@/lib/mock-teams"
+import { AthleteOverview } from "@/components/profile/athlete-overview"
 import type { Team } from "@/lib/sports-data"
 
 
@@ -2270,10 +2271,6 @@ interface AthletePreviewProps {
 }
 
 function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam, onViewFullProfile }: AthletePreviewProps) {
-  const [profileTab, setProfileTab] = useState<typeof PROFILE_TABS[number]>("Overview")
-  const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
-  const teamName = TEAM_FULL_NAMES[athlete.team] || athlete.team
-  const athleteTeam = useMemo(() => findTeamById(athlete.team), [athlete.team])
   const router = useRouter()
 
   // Generate athlete slug for the full profile link
@@ -2301,138 +2298,41 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam, onView
         </div>
       )}
 
-      {/* Scrollable content */}
+      {/* Scrollable content - uses AthleteOverview from full profile */}
       <div className="flex-1 overflow-y-auto pb-20">
-        {/* Avatar + Name + Team/Position - matching Figma design */}
-        <div className="px-5 pt-6 pb-4 flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xl font-bold text-muted-foreground shrink-0">
-            {athlete.name.split(" ").map((n) => n[0]).join("")}
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold text-foreground leading-tight truncate">{athlete.name}</h2>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
-              {athleteTeam && (
-                <div
-                  className="w-4 h-4 rounded flex items-center justify-center text-white text-[8px] font-bold shrink-0"
-                  style={{ backgroundColor: athleteTeam.logoColor }}
-                >
-                  {athleteTeam.abbreviation.slice(0, 2)}
-                </div>
-              )}
-              {athleteTeam && onNavigateToTeam ? (
-                <button
-                  onClick={() => onNavigateToTeam(athleteTeam)}
-                  className="text-foreground underline cursor-pointer"
-                >
-                  {teamName}
-                </button>
-              ) : (
-                <span>{teamName}</span>
-              )}
-              <span className="text-border">{"·"}</span>
-              <span>{athlete.position}</span>
-              <span className="text-border">{"·"}</span>
-              <span>#{athlete.jersey_number}</span>
-            </div>
-          </div>
-        </div>
+        <AthleteOverview 
+          athlete={athlete as Athlete & { id: string }} 
+          onNavigateToTeam={onNavigateToTeam}
+        />
+      </div>
 
-        {/* Profile tabs */}
-        <div className="px-5 pb-4 flex items-center gap-1.5 overflow-x-auto">
-          {PROFILE_TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setProfileTab(tab)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap",
-                profileTab === tab
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {profileTab === "Overview" ? (
-          <div className="px-5 pb-6">
-            {/* Identity section */}
-            <h3 className="text-lg font-bold text-foreground mb-3">Identity</h3>
-            <div className="flex flex-col">
-<IdentityRow label="Height / Weight" value={`${athlete.height} / ${athlete.weight} lbs`} />
-  <IdentityRow label="Position" value={athlete.position} />
-  <IdentityRow label="Jersey" value={`#${athlete.jersey_number}`} />
-  <IdentityRow label="College" value={athlete.college} />
-  <IdentityRow 
-    label="Team" 
-    value={teamName} 
-    isLast 
-    onClick={athleteTeam && onNavigateToTeam ? () => onNavigateToTeam(athleteTeam) : undefined}
-  />
-  </div>
-  
-  {/* Key Stats */}
-  <div className="mt-8">
-  <div className="flex items-center justify-between mb-4">
-  <h3 className="text-lg font-bold text-foreground">Key Stats</h3>
-  <span className="text-xs font-semibold text-muted-foreground border border-border rounded-full px-2.5 py-1">
-  2025/26
-  </span>
-  </div>
-  <div className="grid grid-cols-2 gap-3">
-  {keyStats.map((stat) => (
-  <div key={stat.label} className="rounded-lg border border-border p-3">
-  <p className="text-xs font-bold text-primary mb-1">{stat.label}</p>
-  <div className="flex items-baseline gap-1">
-  <span className="text-2xl font-extrabold text-foreground italic">{stat.value}</span>
-  {stat.secondary && (
-  <span className="text-xs text-muted-foreground">{stat.secondary}</span>
-  )}
-  </div>
-  {stat.note && (
-  <p className="text-[11px] text-muted-foreground mt-0.5">{stat.note}</p>
-  )}
-  </div>
-  ))}
-  </div>
-  </div>
-  </div>
-  ) : (
-  <div className="px-5 py-10 text-center text-sm text-muted-foreground">
-  {profileTab} content coming soon.
-  </div>
-  )}
-  </div>
-
-  {/* Fixed Footer */}
-  <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
-  <Button
-  variant="outline"
-  className="flex-1 font-semibold"
-  onClick={() => {
-  // Placeholder for viewing athlete highlights
-  console.log("View highlights:", athlete.name)
-  }}
-  >
-  View Highlights
-  </Button>
-  <Button
-  className="flex-1 font-semibold"
-  onClick={() => {
-    if (onViewFullProfile && athlete.id) {
-      onViewFullProfile(athlete as Athlete & { id: string })
-    } else {
-      router.push(`/athletes/${athleteSlug}`)
-    }
-  }}
-  >
-  View Full Profile
-  </Button>
-  </div>
-  </div>
+      {/* Fixed Footer */}
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          className="flex-1 font-semibold"
+          onClick={() => {
+            console.log("View highlights:", athlete.name)
+          }}
+        >
+          View Highlights
+        </Button>
+        <Button
+          className="flex-1 font-semibold"
+          onClick={() => {
+            if (onViewFullProfile && athlete.id) {
+              onViewFullProfile(athlete as Athlete & { id: string })
+            } else {
+              router.push(`/athletes/${athleteSlug}`)
+            }
+          }}
+        >
+          View Full Profile
+        </Button>
+      </div>
+    </div>
   )
-  }
+}
 
 // ---------------------------------------------------------------------------
 // PreviewModule
