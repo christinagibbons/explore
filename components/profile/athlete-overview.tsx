@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo } from "react"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { getTeamForAthlete } from "@/lib/mock-teams"
 import type { Athlete } from "@/types/athlete"

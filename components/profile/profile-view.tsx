@@ -9,7 +9,7 @@ import { GridModule } from "@/components/grid-module"
 import { ReportsModule } from "@/components/reports-module"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { useBreadcrumbContext } from "@/lib/breadcrumb-context"
-import { mockDatasets } from "@/lib/mock-datasets"
+import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import type { Athlete } from "@/types/athlete"
 import type { Team } from "@/lib/sports-data"
@@ -38,7 +38,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClose }: ProfileViewProps
   // Get clips filtered for this athlete (mock - in reality this would be API call)
   const athleteClipsDataset = useMemo(() => {
     // For now, return first 20 clips from mock data as "athlete clips"
-    const plays = mockDatasets["off-rpo"]?.plays.slice(0, 20) || []
+    const plays = MOCK_DATASETS[0]?.plays.slice(0, 20) || []
     return {
       id: `athlete-${athlete.id}-clips`,
       name: `${athlete.name} Clips`,
