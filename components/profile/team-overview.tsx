@@ -128,6 +128,30 @@ export function TeamOverview({ team, onNavigateToAthlete, onNavigateToTeam }: Te
       })
   }, [team.id])
 
+  // Upcoming games
+  const upcomingGames = useMemo(() => {
+    return mockGames
+      .filter((g) => g.homeTeamId === team.id || g.awayTeamId === team.id)
+      .filter((g) => g.status === "scheduled")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 4)
+      .map((game) => {
+        const isHome = game.homeTeamId === team.id
+        const opponentId = isHome ? game.awayTeamId : game.homeTeamId
+        const opponent = findTeamById(opponentId)
+        return {
+          id: game.id,
+          date: new Date(game.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          week: game.gameType === "playoff" ? "Playoff" : `Wk ${game.week}`,
+          opponent: opponent?.name || "Unknown",
+          opponentAbbr: opponent?.abbreviation || "UNK",
+          opponentColor: opponent?.logoColor || "#666",
+          opponentTeam: opponent || null,
+          isHome,
+        }
+      })
+  }, [team.id])
+
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
@@ -275,6 +299,55 @@ export function TeamOverview({ team, onNavigateToAthlete, onNavigateToTeam }: Te
             ))}
           </div>
         </section>
+
+        {/* Upcoming Games */}
+        {upcomingGames.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Upcoming Games</h2>
+            </div>
+            <div className="space-y-1">
+              {upcomingGames.map((game) => (
+                <div
+                  key={game.id}
+                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-8 text-xs text-muted-foreground text-center shrink-0">
+                    {game.week}
+                  </div>
+                  <button
+                    onClick={() => game.opponentTeam && onNavigateToTeam?.(game.opponentTeam)}
+                    disabled={!game.opponentTeam || !onNavigateToTeam}
+                    className={cn(
+                      "w-8 h-8 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0 transition-transform",
+                      game.opponentTeam && onNavigateToTeam && "hover:scale-110 cursor-pointer"
+                    )}
+                    style={{ backgroundColor: game.opponentColor }}
+                    title={game.opponentTeam ? `View ${game.opponent}` : undefined}
+                  >
+                    {game.opponentAbbr}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    {game.opponentTeam && onNavigateToTeam ? (
+                      <button
+                        onClick={() => onNavigateToTeam(game.opponentTeam!)}
+                        className="text-sm text-foreground truncate hover:text-primary hover:underline text-left"
+                      >
+                        {game.isHome ? "vs" : "@"} {game.opponent}
+                      </button>
+                    ) : (
+                      <p className="text-sm text-foreground truncate">{game.isHome ? "vs" : "@"} {game.opponent}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">{game.date}</p>
+                  </div>
+                  <div className="text-xs text-muted-foreground px-2 py-0.5 rounded bg-muted/50">
+                    {game.isHome ? "Home" : "Away"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
