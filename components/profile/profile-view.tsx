@@ -9,9 +9,9 @@ import { AthleteOverview } from "@/components/profile/athlete-overview"
 import { ReportsModule } from "@/components/reports-module"
 import { ClipsListModule } from "@/components/profile/clips-list-module"
 import { GamesListModule } from "@/components/profile/games-list-module"
+import { PlaylistPreview } from "@/components/profile/playlist-preview"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
-import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import type { Athlete } from "@/types/athlete"
 import type { Team, Game } from "@/lib/sports-data"
@@ -37,12 +37,13 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
   const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const [previewClip, setPreviewClip] = useState<PlayData | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
+  const [playlistPreview, setPlaylistPreview] = useState<{ title: string } | null>(null)
   
   // Check if any module is visible
   const isModulePanelOpen = visibleModules.clips || visibleModules.games || visibleModules.reports
   
   // Check if any preview is open (different context - hide toolbar)
-  const isPreviewOpen = previewTeam || previewClip || previewGame
+  const isPreviewOpen = previewTeam || previewClip || previewGame || playlistPreview
   
   // Handle team click - open preview
   const handleTeamClick = (team: Team) => {
@@ -70,17 +71,15 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
     setPreviewTeam(null)
     setPreviewClip(null)
     setPreviewGame(null)
+    setPlaylistPreview(null)
   }
   
-  // Handle stat click - open a clip preview (simulating a stat-specific playlist)
+  // Handle stat click - open a playlist preview
   const handleStatClick = (statLabel: string) => {
-    // Get a clip from mock data to represent the stat playlist
-    const clip = MOCK_DATASETS[0]?.plays[0]
-    if (clip) {
-      setPreviewClip(clip)
-      setPreviewTeam(null)
-      setPreviewGame(null)
-    }
+    setPlaylistPreview({ title: `${statLabel} Clips` })
+    setPreviewTeam(null)
+    setPreviewClip(null)
+    setPreviewGame(null)
   }
 
   // Collapse/expand module panel based on visibility
@@ -165,15 +164,23 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
         </ResizablePanelGroup>
       </div>
 
-      {/* Preview Panel - for team/clip/game previews (gap indicates different context) */}
+      {/* Preview Panel - for team/clip/game/playlist previews (gap indicates different context) */}
       {isPreviewOpen && (
         <div className="w-[400px] shrink-0 py-3 pr-3 pl-3">
-          <PreviewModuleV1
-            team={previewTeam || undefined}
-            play={previewClip || undefined}
-            game={previewGame || undefined}
-            onClose={handleClosePreview}
-          />
+          {playlistPreview ? (
+            <PlaylistPreview
+              title={playlistPreview.title}
+              athleteName={athlete.name}
+              onClose={handleClosePreview}
+            />
+          ) : (
+            <PreviewModuleV1
+              team={previewTeam || undefined}
+              play={previewClip || undefined}
+              game={previewGame || undefined}
+              onClose={handleClosePreview}
+            />
+          )}
         </div>
       )}
 

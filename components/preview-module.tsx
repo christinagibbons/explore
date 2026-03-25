@@ -2223,7 +2223,7 @@ export function PreviewModule({
 
 // If an athlete is selected, show their profile instead of the clip view
   if (selectedAthlete) {
-  return <AthleteProfileView athlete={selectedAthlete} onBack={() => setSelectedAthlete(null)} onNavigateToTeam={onNavigateToTeam} />
+  return <AthleteProfileView athlete={selectedAthlete} onNavigateToTeam={onNavigateToTeam} />
   }
 
   return (

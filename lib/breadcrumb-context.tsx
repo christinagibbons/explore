@@ -170,6 +170,15 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
     clip: 0,
     playlist: 0,
   }
+  
+  // Collection type labels for initial breadcrumbs
+  const COLLECTION_TYPE_LABELS: Record<string, string> = {
+    teams: "Teams",
+    athletes: "Athletes",
+    games: "Games",
+    clips: "Clips",
+    playlists: "Playlists",
+  }
 
   // Push a new anchor to the trail, respecting hierarchy
   const pushAnchor = useCallback((anchor: Omit<BreadcrumbAnchor, "href"> & { href?: string }) => {
@@ -198,8 +207,28 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
             break
           }
         }
-        // Slice up to that index and add the new anchor
-        return [...prev.slice(0, insertIndex), fullAnchor]
+        
+        // If we're replacing at index 0 (the first breadcrumb), update it to reflect the entity type
+        // e.g., "Teams" when clicking a team, "Athletes" when clicking an athlete
+        let result = prev.slice(0, insertIndex)
+        if (insertIndex === 0 || (result.length === 1 && result[0].anchorType === "collection")) {
+          // Update or create first breadcrumb based on entity type
+          const collectionType = fullAnchor.specificType === "team" ? "teams" 
+            : fullAnchor.specificType === "athlete" ? "athletes" 
+            : fullAnchor.specificType === "competition" ? "games"
+            : null
+          
+          if (collectionType) {
+            result = [{
+              anchorType: "collection",
+              specificType: collectionType,
+              label: COLLECTION_TYPE_LABELS[collectionType] || collectionType,
+              href: "/explore",
+            }]
+          }
+        }
+        
+        return [...result, fullAnchor]
       }
       
       // Non-hierarchy items (content types) just get appended
