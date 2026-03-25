@@ -253,5 +253,9 @@ function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
 }
 
 export function TeamProfileView(props: TeamProfileViewProps) {
-  return <TeamProfileContent {...props} />
+  return (
+    <ProfileProvider>
+      <TeamProfileContent {...props} />
+    </ProfileProvider>
+  )
 }
