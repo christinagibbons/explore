@@ -46,6 +46,9 @@ const TEAM_FULL_NAMES: Record<string, string> = {
 interface AthleteOverviewProps {
   athlete: Athlete & { id: string }
   onNavigateToTeam?: (team: Team) => void
+  onClickStat?: (statLabel: string) => void
+  /** Compact mode for preview panels - uses single-column layout */
+  compact?: boolean
 }
 
 // Helper to get key stats based on position
@@ -187,7 +190,7 @@ function getRecentPerformance(athlete: Athlete) {
   ]
 }
 
-export function AthleteOverview({ athlete, onNavigateToTeam }: AthleteOverviewProps) {
+export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, compact = false }: AthleteOverviewProps) {
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const advancedStats = useMemo(() => getAdvancedStatsForAthlete(athlete), [athlete])
   const recentPerformance = useMemo(() => getRecentPerformance(athlete), [athlete])
@@ -209,19 +212,22 @@ export function AthleteOverview({ athlete, onNavigateToTeam }: AthleteOverviewPr
   return (
     <div className="h-full overflow-y-auto">
       {/* Compact Header */}
-      <div className="px-6 py-5 border-b border-border bg-muted/20">
+      <div className={cn("border-b border-border bg-muted/20", compact ? "px-4 py-4" : "px-6 py-5")}>
         <div className="flex items-center gap-4">
           {/* Avatar */}
-          <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
-            <span className="text-xl font-bold text-muted-foreground">
+          <div className={cn(
+            "rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0",
+            compact ? "w-12 h-12" : "w-16 h-16"
+          )}>
+            <span className={cn("font-bold text-muted-foreground", compact ? "text-base" : "text-xl")}>
               {athlete.name.split(" ").map((n) => n[0]).join("")}
             </span>
           </div>
 
           {/* Name and Info */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-foreground">{athlete.name}</h1>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+            <h1 className={cn("font-bold text-foreground", compact ? "text-lg" : "text-xl")}>{athlete.name}</h1>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
               {teamInfo ? (
                 <button
                   onClick={handleTeamClick}
@@ -239,33 +245,39 @@ export function AthleteOverview({ athlete, onNavigateToTeam }: AthleteOverviewPr
             </div>
           </div>
 
-          {/* Quick Bio */}
-          <div className="hidden md:flex items-center gap-6 text-sm">
-            <div>
-              <span className="text-muted-foreground">Height</span>
-              <span className="ml-2 text-foreground font-medium">{athlete.height || "—"}</span>
+          {/* Quick Bio - hidden in compact mode */}
+          {!compact && (
+            <div className="hidden md:flex items-center gap-6 text-sm">
+              <div>
+                <span className="text-muted-foreground">Height</span>
+                <span className="ml-2 text-foreground font-medium">{athlete.height || "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Weight</span>
+                <span className="ml-2 text-foreground font-medium">{athlete.weight ? `${athlete.weight} lbs` : "—"}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">College</span>
+                <span className="ml-2 text-foreground font-medium">{athlete.college || "—"}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-muted-foreground">Weight</span>
-              <span className="ml-2 text-foreground font-medium">{athlete.weight ? `${athlete.weight} lbs` : "—"}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">College</span>
-              <span className="ml-2 text-foreground font-medium">{athlete.college || "—"}</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Key Stats with Trends */}
+      <div className={cn("space-y-6", compact ? "p-4" : "p-6")}>
+        {/* Key Stats with Trends - Clickable to open clip playlist */}
         <section>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Season Stats</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={cn("grid gap-3", compact ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4")}>
             {keyStats.map((stat) => (
-              <div
+              <button
                 key={stat.label}
-                className="bg-muted/30 rounded-lg p-4 border border-border/50"
+                onClick={() => onClickStat?.(stat.label)}
+                className={cn(
+                  "bg-muted/30 rounded-lg p-4 border border-border/50 text-left transition-colors",
+                  onClickStat && "hover:bg-muted/50 hover:border-primary/30 cursor-pointer"
+                )}
               >
                 <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 <div className="flex items-center justify-between mt-1">
@@ -282,22 +294,26 @@ export function AthleteOverview({ athlete, onNavigateToTeam }: AthleteOverviewPr
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
 
-        {/* Advanced Stats */}
+        {/* Advanced Stats - Clickable to open clip playlist */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Advanced Metrics</h2>
             <span className="text-xs text-muted-foreground">vs. Position Avg</span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className={cn("grid gap-3", compact ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3")}>
             {advancedStats.map((stat) => (
-              <div
+              <button
                 key={stat.label}
-                className="bg-background rounded-lg p-3 border border-border"
+                onClick={() => onClickStat?.(stat.label)}
+                className={cn(
+                  "bg-background rounded-lg p-3 border border-border text-left transition-colors",
+                  onClickStat && "hover:bg-muted/30 hover:border-primary/30 cursor-pointer"
+                )}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-muted-foreground">{stat.label}</span>
@@ -317,69 +333,71 @@ export function AthleteOverview({ athlete, onNavigateToTeam }: AthleteOverviewPr
                   />
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1">{stat.percentile}th percentile</div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
 
-        {/* Recent Game Log */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Performance</h2>
-            <button className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
-              Full Game Log <ChevronRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/50 text-xs text-muted-foreground">
-                  <th className="text-left px-3 py-2 font-medium">Week</th>
-                  <th className="text-left px-3 py-2 font-medium">Opp</th>
-                  <th className="text-left px-3 py-2 font-medium">Result</th>
-                  <th className="text-left px-3 py-2 font-medium">Stats</th>
-                  <th className="text-right px-3 py-2 font-medium">Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentPerformance.map((game, idx) => (
-                  <tr 
-                    key={game.week} 
-                    className={cn(
-                      "border-t border-border/50",
-                      idx % 2 === 0 ? "bg-background" : "bg-muted/20"
-                    )}
-                  >
-                    <td className="px-3 py-2.5 font-medium text-foreground">{game.week}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{game.opponent}</td>
-                    <td className={cn(
-                      "px-3 py-2.5 font-medium",
-                      game.result.startsWith("W") ? "text-emerald-500" : "text-red-500"
-                    )}>
-                      {game.result}
-                    </td>
-                    <td className="px-3 py-2.5 text-foreground">{game.statLine}</td>
-                    <td className="px-3 py-2.5 text-right">
-                      <span className={cn(
-                        "inline-flex items-center justify-center w-10 py-0.5 rounded text-xs font-semibold",
-                        game.grade >= 80 ? "bg-emerald-500/10 text-emerald-500" :
-                        game.grade >= 70 ? "bg-primary/10 text-primary" :
-                        game.grade >= 60 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
-                      )}>
-                        {game.grade.toFixed(1)}
-                      </span>
-                    </td>
+        {/* Recent Game Log - hidden in compact mode */}
+        {!compact && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Recent Performance</h2>
+              <button className="text-xs text-primary font-medium hover:underline flex items-center gap-0.5">
+                Full Game Log <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted/50 text-xs text-muted-foreground">
+                    <th className="text-left px-3 py-2 font-medium">Week</th>
+                    <th className="text-left px-3 py-2 font-medium">Opp</th>
+                    <th className="text-left px-3 py-2 font-medium">Result</th>
+                    <th className="text-left px-3 py-2 font-medium">Stats</th>
+                    <th className="text-right px-3 py-2 font-medium">Grade</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </thead>
+                <tbody>
+                  {recentPerformance.map((game, idx) => (
+                    <tr 
+                      key={game.week} 
+                      className={cn(
+                        "border-t border-border/50",
+                        idx % 2 === 0 ? "bg-background" : "bg-muted/20"
+                      )}
+                    >
+                      <td className="px-3 py-2.5 font-medium text-foreground">{game.week}</td>
+                      <td className="px-3 py-2.5 text-muted-foreground">{game.opponent}</td>
+                      <td className={cn(
+                        "px-3 py-2.5 font-medium",
+                        game.result.startsWith("W") ? "text-emerald-500" : "text-red-500"
+                      )}>
+                        {game.result}
+                      </td>
+                      <td className="px-3 py-2.5 text-foreground">{game.statLine}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <span className={cn(
+                          "inline-flex items-center justify-center w-10 py-0.5 rounded text-xs font-semibold",
+                          game.grade >= 80 ? "bg-emerald-500/10 text-emerald-500" :
+                          game.grade >= 70 ? "bg-primary/10 text-primary" :
+                          game.grade >= 60 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
+                        )}>
+                          {game.grade.toFixed(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {/* Performance Trends Summary */}
         <section>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Performance Summary</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className={cn("grid gap-3", compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3")}>
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-emerald-500" />

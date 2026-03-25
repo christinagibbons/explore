@@ -159,12 +159,26 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
     setBreadcrumbs([anchor])
   }, [])
 
-  // Push a new anchor to the trail
+  // Hierarchy order: Competition > Team > Athlete
+  // When pushing a new anchor, we replace any items at the same level or lower in hierarchy
+  const HIERARCHY_LEVELS: Record<string, number> = {
+    competition: 1,
+    team: 2,
+    athlete: 3,
+    // Content types are separate context - they open as previews, not in the hierarchy
+    game: 0,
+    clip: 0,
+    playlist: 0,
+  }
+
+  // Push a new anchor to the trail, respecting hierarchy
   const pushAnchor = useCallback((anchor: Omit<BreadcrumbAnchor, "href"> & { href?: string }) => {
     const fullAnchor: BreadcrumbAnchor = {
       ...anchor,
       href: anchor.href || generateHref(anchor),
     }
+    
+    const newLevel = HIERARCHY_LEVELS[fullAnchor.specificType as string] || 0
     
     setBreadcrumbs(prev => {
       // Don't add duplicate consecutive anchors
@@ -172,6 +186,23 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
       if (last && last.specificType === fullAnchor.specificType && last.id === fullAnchor.id) {
         return prev
       }
+      
+      // If this is a hierarchy item (level > 0), find where to insert/replace
+      if (newLevel > 0) {
+        // Find the index of the first item at the same level or higher
+        let insertIndex = prev.length
+        for (let i = 0; i < prev.length; i++) {
+          const itemLevel = HIERARCHY_LEVELS[prev[i].specificType as string] || 0
+          if (itemLevel >= newLevel) {
+            insertIndex = i
+            break
+          }
+        }
+        // Slice up to that index and add the new anchor
+        return [...prev.slice(0, insertIndex), fullAnchor]
+      }
+      
+      // Non-hierarchy items (content types) just get appended
       return [...prev, fullAnchor]
     })
   }, [])

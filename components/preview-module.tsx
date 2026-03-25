@@ -679,26 +679,20 @@ const TEAM_FULL_NAMES: Record<string, string> = {
   TB: "Tampa Bay Buccaneers",
 }
 
-function AthleteProfileView({ athlete, onBack, onNavigateToTeam }: { athlete: Athlete; onBack: () => void; onNavigateToTeam?: (team: Team) => void }) {
+function AthleteProfileView({ athlete, onNavigateToTeam }: { athlete: Athlete; onNavigateToTeam?: (team: Team) => void }) {
   return (
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
-      {/* Header with back button */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50 shrink-0">
-        <button
-          onClick={onBack}
-          className="flex items-center justify-center h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-          aria-label="Back to clip"
-        >
-          <Icon name="chevronLeft" className="w-4 h-4" />
-        </button>
+      {/* Header - no back arrow, use breadcrumbs */}
+      <div className="flex items-center px-4 py-3 border-b border-border/50 shrink-0">
         <span className="text-sm font-semibold text-foreground truncate">Player Profile</span>
       </div>
 
-      {/* Scrollable content - uses AthleteOverview from full profile */}
+      {/* Scrollable content - uses AthleteOverview in compact mode for preview */}
       <div className="flex-1 overflow-y-auto">
         <AthleteOverview 
           athlete={athlete as Athlete & { id: string }} 
           onNavigateToTeam={onNavigateToTeam}
+          compact
         />
       </div>
     </div>
@@ -2068,11 +2062,12 @@ function AthletePreview({ athlete, onClose, hideHeader, onNavigateToTeam, onView
         </div>
       )}
 
-      {/* Scrollable content - uses AthleteOverview from full profile */}
+      {/* Scrollable content - uses AthleteOverview in compact mode for preview */}
       <div className="flex-1 overflow-y-auto pb-20">
         <AthleteOverview 
           athlete={athlete as Athlete & { id: string }} 
           onNavigateToTeam={onNavigateToTeam}
+          compact
         />
       </div>
 

@@ -11,6 +11,7 @@ import { ClipsListModule } from "@/components/profile/clips-list-module"
 import { GamesListModule } from "@/components/profile/games-list-module"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
+import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import type { Athlete } from "@/types/athlete"
 import type { Team, Game } from "@/lib/sports-data"
@@ -70,6 +71,17 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
     setPreviewClip(null)
     setPreviewGame(null)
   }
+  
+  // Handle stat click - open a clip preview (simulating a stat-specific playlist)
+  const handleStatClick = (statLabel: string) => {
+    // Get a clip from mock data to represent the stat playlist
+    const clip = MOCK_DATASETS[0]?.plays[0]
+    if (clip) {
+      setPreviewClip(clip)
+      setPreviewTeam(null)
+      setPreviewGame(null)
+    }
+  }
 
   // Collapse/expand module panel based on visibility
   useEffect(() => {
@@ -111,6 +123,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
                 <AthleteOverview 
                   athlete={athlete} 
                   onNavigateToTeam={handleTeamClick}
+                  onClickStat={handleStatClick}
                 />
               </div>
             </div>
