@@ -14,6 +14,7 @@ import { ReportsModule } from "@/components/reports-module"
 import { ClipsListModule } from "@/components/profile/clips-list-module"
 import { GamesListModule } from "@/components/profile/games-list-module"
 import { PlaylistPreview } from "@/components/profile/playlist-preview"
+import { GamePreview } from "@/components/profile/game-preview"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
 import type { ImperativePanelHandle } from "react-resizable-panels"
@@ -47,6 +48,13 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
   const [previewClip, setPreviewClip] = useState<PlayData | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [playlistPreview, setPlaylistPreview] = useState<{ title: string } | null>(null)
+  const [gamePerformancePreview, setGamePerformancePreview] = useState<{
+    week: string
+    opponent: string
+    result: string
+    statLine: string
+    grade: number
+  } | null>(null)
   
   // Get mock clips for the playlist preview
   const playlistClips = useMemo(() => {
@@ -57,7 +65,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
   const isModulePanelOpen = visibleModules.clips || visibleModules.games || visibleModules.reports
   
   // Check if any preview is open (different context - hide toolbar)
-  const isPreviewOpen = previewTeam || previewClip || previewGame || playlistPreview
+  const isPreviewOpen = previewTeam || previewClip || previewGame || playlistPreview || gamePerformancePreview
   
   // Handle team click - open preview
   const handleTeamClick = (team: Team) => {
@@ -86,6 +94,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
     setPreviewClip(null)
     setPreviewGame(null)
     setPlaylistPreview(null)
+    setGamePerformancePreview(null)
   }
   
   // Handle stat click - open a playlist preview
@@ -94,6 +103,72 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
     setPreviewTeam(null)
     setPreviewClip(null)
     setPreviewGame(null)
+    setGamePerformancePreview(null)
+  }
+  
+  // Handle game click from game log - open game preview
+  const handleGamePerformanceClick = (game: {
+    week: string
+    opponent: string
+    result: string
+    statLine: string
+    grade: number
+  }) => {
+    setGamePerformancePreview(game)
+    setPreviewTeam(null)
+    setPreviewClip(null)
+    setPreviewGame(null)
+    setPlaylistPreview(null)
+  }
+  
+  // Handle watch full game - navigate to watch with game clips
+  const handleWatchFullGame = () => {
+    if (!gamePerformancePreview) return
+    
+    // Convert PlayData to ClipData format for the library context
+    const clips = playlistClips.map((play) => ({
+      id: play.id,
+      playNumber: play.playNumber,
+      odk: play.odk,
+      quarter: play.quarter,
+      down: play.down,
+      distance: play.distance,
+      yardLine: play.yardLine,
+      hash: play.hash,
+      yards: play.yards,
+      result: play.result,
+      gainLoss: play.gainLoss,
+      defFront: play.defFront,
+      defStr: play.defStr,
+      coverage: play.coverage,
+      blitz: play.blitz,
+      game: play.game,
+      playType: play.playType,
+      passResult: play.passResult,
+      runDirection: play.runDirection,
+      personnelO: play.personnelO,
+      personnelD: play.personnelD,
+      isTouchdown: play.isTouchdown,
+      isFirstDown: play.isFirstDown,
+      isPenalty: play.isPenalty,
+      penaltyType: play.penaltyType,
+    }))
+    
+    const gameName = `${gamePerformancePreview.week} vs ${gamePerformancePreview.opponent}`
+    
+    // Push the game to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "game",
+      label: gameName,
+      id: `game-${gamePerformancePreview.week}-${gamePerformancePreview.opponent}`,
+    })
+    
+    // Set pending clips with the game name
+    setPendingPreviewClips(clips, gameName)
+    
+    // Navigate to watch
+    router.push("/watch")
   }
   
   // Handle view full playlist - navigate to watch with clips
@@ -185,6 +260,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
                   athlete={athlete} 
                   onNavigateToTeam={handleTeamClick}
                   onClickStat={handleStatClick}
+                  onClickGame={handleGamePerformanceClick}
                 />
               </div>
             </div>
@@ -235,6 +311,13 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
               athleteName={athlete.name}
               onClose={handleClosePreview}
               onViewFullPlaylist={handleViewFullPlaylist}
+            />
+          ) : gamePerformancePreview ? (
+            <GamePreview
+              game={gamePerformancePreview}
+              athleteName={athlete.name}
+              onClose={handleClosePreview}
+              onWatchFullGame={handleWatchFullGame}
             />
           ) : (
             <PreviewModuleV1

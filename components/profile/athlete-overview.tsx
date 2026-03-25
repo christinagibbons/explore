@@ -43,10 +43,19 @@ const TEAM_FULL_NAMES: Record<string, string> = {
   ARI: "Arizona Cardinals",
 }
 
+interface GamePerformance {
+  week: string
+  opponent: string
+  result: string
+  statLine: string
+  grade: number
+}
+
 interface AthleteOverviewProps {
   athlete: Athlete & { id: string }
   onNavigateToTeam?: (team: Team) => void
   onClickStat?: (statLabel: string) => void
+  onClickGame?: (game: GamePerformance) => void
   /** Compact mode for preview panels - uses single-column layout */
   compact?: boolean
 }
@@ -190,7 +199,7 @@ function getRecentPerformance(athlete: Athlete) {
   ]
 }
 
-export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, compact = false }: AthleteOverviewProps) {
+export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClickGame, compact = false }: AthleteOverviewProps) {
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const advancedStats = useMemo(() => getAdvancedStatsForAthlete(athlete), [athlete])
   const recentPerformance = useMemo(() => getRecentPerformance(athlete), [athlete])
@@ -362,9 +371,11 @@ export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, compac
                   {recentPerformance.map((game, idx) => (
                     <tr 
                       key={game.week} 
+                      onClick={() => onClickGame?.(game)}
                       className={cn(
-                        "border-t border-border/50",
-                        idx % 2 === 0 ? "bg-background" : "bg-muted/20"
+                        "border-t border-border/50 transition-colors",
+                        idx % 2 === 0 ? "bg-background" : "bg-muted/20",
+                        onClickGame && "cursor-pointer hover:bg-primary/5"
                       )}
                     >
                       <td className="px-3 py-2.5 font-medium text-foreground">{game.week}</td>
