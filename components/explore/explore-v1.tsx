@@ -159,6 +159,13 @@ export function ExploreV1() {
     setPreviewTeam(null)
     setPreviewAthlete(null)
     setPreviewGame(game)
+    // Push game to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "game",
+      label: game.matchupDisplay,
+      id: game.id,
+    })
   }
 
   const handleClipClick = (play: PlayData) => {

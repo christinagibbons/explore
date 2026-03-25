@@ -5,7 +5,7 @@ import { ChevronDown, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useBreadcrumbContext } from "@/lib/breadcrumb-context"
 import { sportsData } from "@/lib/sports-data"
-import type { Athlete, TeamHistoryEntry } from "@/types/athlete"
+import type { Athlete } from "@/types/athlete"
 
 // Get team full name from abbreviation
 function getTeamName(abbreviation: string): string {
@@ -27,7 +27,7 @@ function getTeamName(abbreviation: string): string {
 
 interface TeamScopeSelectorProps {
   athlete: Athlete & { id: string }
-  selectedTeam: string | null // null means "All Teams"
+  selectedTeam: string | null // null means "All Teams" (for multi-team) or current team (for single)
   onSelectTeam: (team: string | null) => void
 }
 
@@ -71,31 +71,31 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
   }, [hasMultipleTeams, selectedTeam, teamFromBreadcrumb, onSelectTeam])
   
   // Get display label
-  const displayLabel = hasMultipleTeams
-    ? (selectedTeam ? getTeamName(selectedTeam) : "All Teams")
-    : getTeamName(athlete.team)
+  const displayLabel = useMemo(() => {
+    if (hasMultipleTeams) {
+      return selectedTeam ? getTeamName(selectedTeam) : "All Teams"
+    }
+    return getTeamName(athlete.team)
+  }, [hasMultipleTeams, selectedTeam, athlete.team])
   
   return (
     <div className="relative">
       <button
-        onClick={() => hasMultipleTeams && setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
-          "bg-muted/50 border border-border/50",
-          hasMultipleTeams ? "hover:bg-muted cursor-pointer" : "cursor-default",
+          "bg-muted/50 hover:bg-muted border border-border/50 cursor-pointer",
           isOpen && "bg-muted"
         )}
       >
         <span className="text-foreground font-medium">{displayLabel}</span>
-        {hasMultipleTeams && (
-          <ChevronDown className={cn(
-            "w-3.5 h-3.5 text-muted-foreground transition-transform",
-            isOpen && "rotate-180"
-          )} />
-        )}
+        <ChevronDown className={cn(
+          "w-3.5 h-3.5 text-muted-foreground transition-transform",
+          isOpen && "rotate-180"
+        )} />
       </button>
       
-      {isOpen && hasMultipleTeams && (
+      {isOpen && (
         <>
           {/* Backdrop */}
           <div 
@@ -104,63 +104,75 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
           />
           
           {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 z-50 w-48 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-            {/* All Teams option */}
-            <button
-              onClick={() => {
-                onSelectTeam(null)
-                setIsOpen(false)
-              }}
-              className={cn(
-                "w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
-                selectedTeam === null && "bg-primary/10"
-              )}
-            >
-              <span className={cn(
-                "font-medium",
-                selectedTeam === null ? "text-primary" : "text-foreground"
-              )}>
-                All Teams
-              </span>
-              {selectedTeam === null && (
-                <Check className="w-4 h-4 text-primary" />
-              )}
-            </button>
-            
-            <div className="h-px bg-border" />
-            
-            {/* Individual teams */}
-            {allTeams.map((entry) => (
-              <button
-                key={entry.team}
-                onClick={() => {
-                  onSelectTeam(entry.team)
-                  setIsOpen(false)
-                }}
-                className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
-                  selectedTeam === entry.team && "bg-primary/10"
-                )}
-              >
-                <div className="flex flex-col items-start">
+          <div className="absolute top-full left-0 mt-1 z-50 w-56 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+            {hasMultipleTeams && (
+              <>
+                {/* All Teams option - only for multi-team athletes */}
+                <button
+                  onClick={() => {
+                    onSelectTeam(null)
+                    setIsOpen(false)
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
+                    selectedTeam === null && "bg-primary/10"
+                  )}
+                >
                   <span className={cn(
                     "font-medium",
-                    selectedTeam === entry.team ? "text-primary" : "text-foreground"
+                    selectedTeam === null ? "text-primary" : "text-foreground"
                   )}>
-                    {getTeamName(entry.team)}
+                    All Teams
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {entry.seasons.length === 1 
-                      ? entry.seasons[0]
-                      : `${entry.seasons[0]}-${entry.seasons[entry.seasons.length - 1]}`
+                  {selectedTeam === null && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+                
+                <div className="h-px bg-border" />
+              </>
+            )}
+            
+            {/* Individual teams */}
+            {allTeams.map((entry) => {
+              const isSelected = hasMultipleTeams 
+                ? selectedTeam === entry.team 
+                : true // Single team is always "selected"
+              
+              return (
+                <button
+                  key={entry.team}
+                  onClick={() => {
+                    if (hasMultipleTeams) {
+                      onSelectTeam(entry.team)
                     }
-                  </span>
-                </div>
-                {selectedTeam === entry.team && (
-                  <Check className="w-4 h-4 text-primary" />
-                )}
-              </button>
-            ))}
+                    setIsOpen(false)
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted/50 transition-colors",
+                    isSelected && "bg-primary/10"
+                  )}
+                >
+                  <div className="flex flex-col items-start">
+                    <span className={cn(
+                      "font-medium",
+                      isSelected ? "text-primary" : "text-foreground"
+                    )}>
+                      {getTeamName(entry.team)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {entry.seasons.length === 1 
+                        ? entry.seasons[0]
+                        : `${entry.seasons[0]}-${entry.seasons[entry.seasons.length - 1]}`
+                      }
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <Check className="w-4 h-4 text-primary" />
+                  )}
+                </button>
+              )
+            })}
           </div>
         </>
       )}
