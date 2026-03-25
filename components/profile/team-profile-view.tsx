@@ -10,6 +10,7 @@ import { GamesListModule } from "@/components/profile/games-list-module"
 import { ReportsModule } from "@/components/reports-module"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
+import { ScopeSelector } from "@/components/profile/scope-selector"
 import { cn } from "@/lib/utils"
 import { Play, Calendar, Users } from "lucide-react"
 import type { ImperativePanelHandle } from "react-resizable-panels"
@@ -179,9 +180,12 @@ function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
             order={1}
           >
             <div className="h-full overflow-hidden bg-background rounded-lg flex flex-col">
-              {/* Breadcrumbs */}
+              {/* Breadcrumbs with Scope Selector */}
               <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
-                <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+                <ExploreBreadcrumbs 
+                  onNavigate={handleBreadcrumbNavigate}
+                  actions={<ScopeSelector />}
+                />
               </div>
               {/* Overview Content */}
               <div className="flex-1 overflow-hidden">

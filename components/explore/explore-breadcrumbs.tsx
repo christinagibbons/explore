@@ -21,9 +21,11 @@ interface ExploreBreadcrumbsProps {
   className?: string
   // Optional callback when a breadcrumb is clicked
   onNavigate?: (anchor: BreadcrumbAnchor, index: number) => void
+  // Optional right-side actions (e.g., scope selector)
+  actions?: React.ReactNode
 }
 
-export function ExploreBreadcrumbs({ className, onNavigate }: ExploreBreadcrumbsProps) {
+export function ExploreBreadcrumbs({ className, onNavigate, actions }: ExploreBreadcrumbsProps) {
   const router = useRouter()
   const context = useBreadcrumbContextOptional()
 
@@ -49,41 +51,50 @@ export function ExploreBreadcrumbs({ className, onNavigate }: ExploreBreadcrumbs
   }
 
   return (
-    <nav 
-      aria-label="Breadcrumb navigation"
-      className={cn("flex items-center gap-1 text-sm", className)}
-    >
-      {breadcrumbs.map((anchor, index) => {
-        const isLast = index === breadcrumbs.length - 1
-        const isFirst = index === 0
+    <div className={cn("flex items-center justify-between gap-4", className)}>
+      <nav 
+        aria-label="Breadcrumb navigation"
+        className="flex items-center gap-1 text-sm min-w-0"
+      >
+        {breadcrumbs.map((anchor, index) => {
+          const isLast = index === breadcrumbs.length - 1
+          const isFirst = index === 0
 
-        return (
-          <div key={`${anchor.specificType}-${anchor.id || index}`} className="flex items-center gap-1">
-            {/* Separator (not before first item) */}
-            {!isFirst && (
-              <span className="text-muted-foreground/60 shrink-0">/</span>
-            )}
+          return (
+            <div key={`${anchor.specificType}-${anchor.id || index}`} className="flex items-center gap-1">
+              {/* Separator (not before first item) */}
+              {!isFirst && (
+                <span className="text-muted-foreground/60 shrink-0">/</span>
+              )}
 
-            {/* Breadcrumb item */}
-            <button
-              onClick={() => handleClick(anchor, index)}
-              disabled={isLast}
-              className={cn(
-                "flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors",
-                isLast
-                  ? "text-foreground font-medium cursor-default"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              )}
-            >
-              {/* Show home icon for first collection */}
-              {isFirst && anchor.anchorType === "collection" && (
-                <Home className="w-3.5 h-3.5 shrink-0" />
-              )}
-              <span className="truncate max-w-[150px]">{anchor.label}</span>
-            </button>
-          </div>
-        )
-      })}
-    </nav>
+              {/* Breadcrumb item */}
+              <button
+                onClick={() => handleClick(anchor, index)}
+                disabled={isLast}
+                className={cn(
+                  "flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors",
+                  isLast
+                    ? "text-foreground font-medium cursor-default"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                {/* Show home icon for first collection */}
+                {isFirst && anchor.anchorType === "collection" && (
+                  <Home className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span className="truncate max-w-[150px]">{anchor.label}</span>
+              </button>
+            </div>
+          )
+        })}
+      </nav>
+      
+      {/* Right-side actions */}
+      {actions && (
+        <div className="shrink-0">
+          {actions}
+        </div>
+      )}
+    </div>
   )
 }

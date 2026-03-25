@@ -14,6 +14,7 @@ import { ReportsModule } from "@/components/reports-module"
 import { ClipsListModule } from "@/components/profile/clips-list-module"
 import { GamesListModule } from "@/components/profile/games-list-module"
 import { PlaylistPreview } from "@/components/profile/playlist-preview"
+import { ScopeSelector } from "@/components/profile/scope-selector"
 import { GamePreview } from "@/components/profile/game-preview"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
@@ -250,9 +251,12 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
             order={1}
           >
             <div className="h-full overflow-hidden bg-background rounded-lg flex flex-col">
-              {/* Breadcrumbs */}
+              {/* Breadcrumbs with Scope Selector */}
               <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
-                <ExploreBreadcrumbs onNavigate={handleBreadcrumbNavigate} />
+                <ExploreBreadcrumbs 
+                  onNavigate={handleBreadcrumbNavigate} 
+                  actions={<ScopeSelector />}
+                />
               </div>
               {/* Overview Content */}
               <div className="flex-1 overflow-hidden">

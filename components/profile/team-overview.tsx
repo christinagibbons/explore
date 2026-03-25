@@ -2,7 +2,6 @@
 
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
-import { ScopeSelector } from "./scope-selector"
 import { getAthletesForTeam } from "@/lib/mock-teams"
 import { mockGames } from "@/lib/mock-games"
 import { findTeamById } from "@/lib/games-context"
@@ -137,13 +136,12 @@ export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
         >
           {team.abbreviation}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">{team.name}</h1>
           <p className="text-sm text-muted-foreground">
             {conferenceInfo.conference} {conferenceInfo.division} · {stats.record.wins}-{stats.record.losses}
           </p>
         </div>
-        <ScopeSelector />
       </div>
 
       <div className="px-6 pb-6 space-y-6">
