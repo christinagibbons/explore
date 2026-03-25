@@ -4,8 +4,6 @@ import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { getTeamForAthlete } from "@/lib/mock-teams"
 import { TrendingUp, TrendingDown, Minus, ChevronRight } from "lucide-react"
-import { ScopeSelector } from "./scope-selector"
-import { useProfileContextOptional, SCOPE_OPTIONS } from "./profile-context"
 import type { Athlete } from "@/types/athlete"
 import type { Team } from "@/lib/sports-data"
 
@@ -202,10 +200,6 @@ function getRecentPerformance(athlete: Athlete) {
 }
 
 export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClickGame, compact = false }: AthleteOverviewProps) {
-  const profileContext = useProfileContextOptional()
-  const scope = profileContext?.scope || "2025"
-  const scopeLabel = SCOPE_OPTIONS.find(opt => opt.value === scope)?.label || "2025 Season"
-  
   const keyStats = useMemo(() => getKeyStatsForAthlete(athlete), [athlete])
   const advancedStats = useMemo(() => getAdvancedStatsForAthlete(athlete), [athlete])
   const recentPerformance = useMemo(() => getRecentPerformance(athlete), [athlete])
@@ -241,11 +235,7 @@ export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClic
 
           {/* Name and Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className={cn("font-bold text-foreground", compact ? "text-lg" : "text-xl")}>{athlete.name}</h1>
-              {/* Scope selector - only in full profile mode */}
-              {!compact && <ScopeSelector />}
-            </div>
+            <h1 className={cn("font-bold text-foreground", compact ? "text-lg" : "text-xl")}>{athlete.name}</h1>
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5 flex-wrap">
               {teamInfo ? (
                 <button
@@ -287,12 +277,7 @@ export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClic
       <div className={cn("space-y-6", compact ? "p-4" : "p-6")}>
         {/* Key Stats with Trends - Clickable to open clip playlist */}
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              {scope === "career" ? "Career Stats" : "Season Stats"}
-            </h2>
-            {!compact && <span className="text-xs text-muted-foreground">{scopeLabel}</span>}
-          </div>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Season Stats</h2>
           <div className={cn("grid gap-3", compact ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4")}>
             {keyStats.map((stat) => (
               <button
