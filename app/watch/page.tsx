@@ -9,10 +9,23 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { WatchProvider, useWatchContext } from "@/components/watch/watch-context"
 import { WatchToolbar } from "@/components/watch/watch-toolbar"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
+import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 function WatchContent() {
-  const { visibleModules, reportsPanelSize, setReportsPanelSize } = useWatchContext()
+  const { visibleModules, reportsPanelSize, setReportsPanelSize, toggleModule } = useWatchContext()
+  const breadcrumbContext = useBreadcrumbContextOptional()
+  const hasBreadcrumbs = breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0
+  
+  // Hide library when coming from explore (indicated by breadcrumbs existing)
+  const hasHiddenLibraryRef = useRef(false)
+  useEffect(() => {
+    if (hasBreadcrumbs && visibleModules.library && !hasHiddenLibraryRef.current) {
+      toggleModule("library")
+      hasHiddenLibraryRef.current = true
+    }
+  }, [hasBreadcrumbs, visibleModules.library, toggleModule])
 
   const topPanelRef = useRef<ImperativePanelHandle>(null)
   const libraryPanelRef = useRef<ImperativePanelHandle>(null)
@@ -63,9 +76,17 @@ function WatchContent() {
   }, [visibleModules.reports])
 
   return (
-    <div className="flex h-full w-full">
-      {/* Main Resizable Area — horizontal split: content | reports */}
-      <div className="flex-1 min-w-0 bg-sidebar">
+    <div className="flex flex-col h-full w-full">
+      {/* Breadcrumb bar - only show if we have breadcrumbs from explore */}
+      {hasBreadcrumbs && (
+        <div className="bg-sidebar px-4 py-2 border-b border-border/50 shrink-0">
+          <ExploreBreadcrumbs />
+        </div>
+      )}
+      
+      <div className="flex flex-1 min-h-0 w-full">
+        {/* Main Resizable Area — horizontal split: content | reports */}
+        <div className="flex-1 min-w-0 bg-sidebar">
         <ResizablePanelGroup
           direction="horizontal"
           className="[&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out"
@@ -171,7 +192,8 @@ function WatchContent() {
       </div>
 
       {/* RHS Toolbar */}
-      <WatchToolbar />
+        <WatchToolbar />
+      </div>
     </div>
   )
 }

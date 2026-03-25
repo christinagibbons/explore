@@ -35,6 +35,17 @@ export interface AthleteStats {
 }
 
 // ---------------------------------------------------------------------------
+// Team History Entry
+// ---------------------------------------------------------------------------
+
+export interface TeamHistoryEntry {
+  /** Team abbreviation */
+  team: string
+  /** Seasons played for this team (e.g. ["2023", "2024"]) */
+  seasons: string[]
+}
+
+// ---------------------------------------------------------------------------
 // Athlete
 // ---------------------------------------------------------------------------
 
@@ -45,8 +56,10 @@ export interface Athlete {
   name: string
   /** League: NFL, College, or HighSchool */
   league: AthleteLeague
-  /** Team abbreviation matching sports-data.ts (e.g. "BAL", "KC", "UGA", "MDM") */
+  /** Current team abbreviation matching sports-data.ts (e.g. "BAL", "KC", "UGA", "MDM") */
   team: string
+  /** Historical teams the athlete has played for (optional, for multi-team athletes) */
+  teamHistory?: TeamHistoryEntry[]
   /** Player position */
   position: Position
   /** Jersey number */

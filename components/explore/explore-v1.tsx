@@ -9,6 +9,8 @@ import { GamesModule } from "@/components/games-module"
 import { TeamsModule } from "@/components/teams-module"
 import { AthletesModule } from "@/components/athletes-module"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
+import { ProfileView } from "@/components/profile/profile-view"
+import { TeamProfileView } from "@/components/profile/team-profile-view"
 import { getAllUniqueClips } from "@/lib/mock-datasets"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
 import { useExploreFilters } from "@/hooks/use-explore-filters"
@@ -25,12 +27,15 @@ import type { Game, GameLeague } from "@/types/game"
 import type { Team } from "@/lib/sports-data"
 import type { Athlete } from "@/types/athlete"
 import { useExploreContext } from "@/lib/explore-context"
+import { useBreadcrumbContext, type CollectionType } from "@/lib/breadcrumb-context"
+import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 
 const exploreTabs = [
-  { value: "clips", label: "Clips" },
-  { value: "games", label: "Games" },
+  { value: "competitions", label: "Competitions" },
   { value: "teams", label: "Teams" },
   { value: "athletes", label: "Athletes" },
+  { value: "games", label: "Games" },
+  { value: "clips", label: "Clips" },
 ] as const
 
 type ExploreTab = (typeof exploreTabs)[number]["value"]
@@ -106,7 +111,11 @@ export function ExploreV1() {
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [previewTeam, setPreviewTeam] = useState<Team | null>(null)
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
+  // Focused entity state - when an entity becomes the main content (full profile view)
+  const [focusedAthlete, setFocusedAthlete] = useState<(Athlete & { id: string }) | null>(null)
+  const [focusedTeam, setFocusedTeam] = useState<Team | null>(null)
   const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
+  const { setCollectionAnchor, pushAnchor } = useBreadcrumbContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
   const filterPanelRef = useRef<ImperativePanelHandle>(null)
 
@@ -127,6 +136,14 @@ export function ExploreV1() {
 
   const gamesFilterCount = selectedLeagues.length + (selectedSeason ? 1 : 0)
 
+  // Set collection anchor when tab changes or on mount
+  // This establishes the breadcrumb trail starting point
+  useEffect(() => {
+    setCollectionAnchor(activeTab as CollectionType)
+    // setCollectionAnchor is a stable callback from context
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
+
   useEffect(() => {
     if (previewPlay || previewGame || previewTeam || previewAthlete) {
       previewPanelRef.current?.resize(50)
@@ -142,6 +159,13 @@ export function ExploreV1() {
     setPreviewTeam(null)
     setPreviewAthlete(null)
     setPreviewGame(game)
+    // Push game to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "game",
+      label: game.matchupDisplay,
+      id: game.id,
+    })
   }
 
   const handleClipClick = (play: PlayData) => {
@@ -170,6 +194,50 @@ export function ExploreV1() {
     setPreviewGame(null)
     setPreviewTeam(null)
     setPreviewAthlete(null)
+  }
+
+  // Handler for when an athlete becomes the focused entity (full profile in modules layout)
+  const handleFocusAthlete = (athlete: Athlete & { id: string }) => {
+    setFocusedAthlete(athlete)
+    setFocusedTeam(null) // Clear team focus when switching to athlete
+    setPreviewAthlete(null)
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    setPreviewTeam(null)
+    // Push athlete to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "athlete",
+      label: athlete.name,
+      id: athlete.id,
+    })
+  }
+
+  // Handler to go back from focused athlete to the list
+  const handleCloseFocusedAthlete = () => {
+    setFocusedAthlete(null)
+  }
+
+  // Handler for when a team becomes the focused entity (full profile in modules layout)
+  const handleFocusTeam = (team: Team) => {
+    setFocusedTeam(team)
+    setFocusedAthlete(null) // Clear athlete focus when switching to team
+    setPreviewTeam(null)
+    setPreviewAthlete(null)
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    // Push team to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "team",
+      label: team.name,
+      id: team.id,
+    })
+  }
+
+  // Handler to go back from focused team to the list
+  const handleCloseFocusedTeam = () => {
+    setFocusedTeam(null)
   }
 
   useEffect(() => {
@@ -204,6 +272,33 @@ export function ExploreV1() {
     () => ({ ...allClipsDataset, plays: filteredPlays }),
     [allClipsDataset, filteredPlays]
   )
+
+  // If an athlete is focused, render the ProfileView which has its own toolbar + module system
+  if (focusedAthlete) {
+    return (
+      <div className="h-full w-full bg-sidebar">
+        <ProfileView
+          athlete={focusedAthlete}
+          onNavigateToTeam={handleTeamClick}
+          onFocusTeam={handleFocusTeam}
+          onClose={handleCloseFocusedAthlete}
+        />
+      </div>
+    )
+  }
+
+  // If a team is focused, render the TeamProfileView which has its own toolbar + module system
+  if (focusedTeam) {
+    return (
+      <div className="h-full w-full bg-sidebar">
+        <TeamProfileView
+          team={focusedTeam}
+          onClose={handleCloseFocusedTeam}
+          onNavigateToTeam={handleFocusTeam}
+        />
+      </div>
+    )
+  }
 
   return (
     <WatchProvider initialTabs={[allClipsDataset]}>
@@ -252,8 +347,10 @@ export function ExploreV1() {
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v1" order={1}>
                 <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
-                  {/* Tabs */}
-                  <div className="flex items-center gap-2 px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                  {/* Tabs header - no breadcrumbs on base explore page */}
+                  <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
+                    {/* Tabs */}
+                    <div className="flex items-center gap-2">
                     {exploreTabs.map((tab) => (
                       <button
                         key={tab.value}
@@ -268,10 +365,18 @@ export function ExploreV1() {
                         {tab.label}
                       </button>
                     ))}
+                    </div>
                   </div>
 
-                  {/* Tab Content */}
-                  {activeTab === "clips" ? (
+                  {/* Tab content - only show when not focused on entity */}
+                  {activeTab === "competitions" ? (
+                    <div className="flex-1 bg-background rounded-b-lg overflow-hidden">
+                      <div className="p-6 text-center text-muted-foreground">
+                        <p className="text-sm">Competitions module coming soon.</p>
+                        <p className="text-xs mt-1">Browse leagues, tournaments, and seasonal competitions.</p>
+                      </div>
+                    </div>
+                  ) : activeTab === "clips" ? (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden relative">
                       <GridModule
                         showTabs={false}
@@ -355,6 +460,8 @@ export function ExploreV1() {
                       team={previewTeam || undefined}
                       athlete={previewAthlete || undefined}
                       onClose={handleClosePreview}
+                      onFocusAthlete={handleFocusAthlete}
+                      onFocusTeam={handleFocusTeam}
                     />
                   )}
                 </div>

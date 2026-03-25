@@ -2,9 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { mockGames, mockClips, findTeamById as getTeamById } from "@/lib/games-context"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { Search } from "lucide-react"
 import type { Game, GameLeague } from "@/types/game"
 
 // ---------------------------------------------------------------------------
@@ -218,8 +216,6 @@ export function GamesModule({
   onClickGame,
   activeGameId,
 }: GamesModuleProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-
   // Get all unique seasons from games
   const allSeasons = useMemo(() => {
     const seasons = new Set(mockGames.map((g) => g.season))
@@ -238,22 +234,6 @@ export function GamesModule({
     // Filter by selected season (if any)
     if (selectedSeason) {
       filtered = filtered.filter((g) => g.season === selectedSeason)
-    }
-
-    // Filter by search query (team names or matchup display)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter((g) => {
-        const homeTeam = getTeamById(g.homeTeamId)
-        const awayTeam = getTeamById(g.awayTeamId)
-        return (
-          g.matchupDisplay.toLowerCase().includes(query) ||
-          homeTeam?.name.toLowerCase().includes(query) ||
-          awayTeam?.name.toLowerCase().includes(query) ||
-          homeTeam?.abbreviation.toLowerCase().includes(query) ||
-          awayTeam?.abbreviation.toLowerCase().includes(query)
-        )
-      })
     }
 
     // Sort by date (newest first)
@@ -294,7 +274,7 @@ export function GamesModule({
     })
 
     return result
-  }, [selectedLeagues, selectedSeason, searchQuery])
+  }, [selectedLeagues, selectedSeason])
 
   // Count total games
   const totalGames = organizedGames.reduce(
@@ -304,22 +284,10 @@ export function GamesModule({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header with count and search */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">All Games</span>
-          <span className="text-sm text-muted-foreground">({totalGames})</span>
-        </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search games..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 bg-muted/50 border-border/50 text-sm"
-          />
-        </div>
+      {/* Header with count */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+        <span className="text-sm font-semibold text-foreground">All Games</span>
+        <span className="text-sm text-muted-foreground">({totalGames})</span>
       </div>
 
       {/* Games List */}

@@ -3,8 +3,6 @@
 import { useState, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Icon } from "@/components/icon"
-import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { athletes } from "@/lib/athletes-data"
 import type { Athlete } from "@/types/athlete"
@@ -44,7 +42,6 @@ export function AthletesModule({
   onClickAthlete,
   activeAthleteId,
 }: AthletesModuleProps) {
-  const [searchQuery, setSearchQuery] = useState("")
   const [sortField, setSortField] = useState<SortField>("name")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
@@ -58,18 +55,6 @@ export function AthletesModule({
         const athleteLeague = LEAGUE_MAP[athlete.league]
         return athleteLeague && selectedLeagues.includes(athleteLeague)
       })
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(
-        (athlete) =>
-          athlete.name.toLowerCase().includes(query) ||
-          athlete.team.toLowerCase().includes(query) ||
-          athlete.position.toLowerCase().includes(query) ||
-          athlete.college?.toLowerCase().includes(query)
-      )
     }
 
     // Sort
@@ -93,7 +78,7 @@ export function AthletesModule({
     })
 
     return result
-  }, [selectedLeagues, searchQuery, sortField, sortDirection])
+  }, [selectedLeagues, sortField, sortDirection])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -117,22 +102,10 @@ export function AthletesModule({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header with count and search */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">All Athletes</span>
-          <span className="text-sm text-muted-foreground">({athletes.length})</span>
-        </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search athletes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 bg-muted/50 border-border/50 text-sm"
-          />
-        </div>
+      {/* Header with count */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+        <span className="text-sm font-semibold text-foreground">All Athletes</span>
+        <span className="text-sm text-muted-foreground">({filteredAthletes.length})</span>
       </div>
 
       {/* Table */}

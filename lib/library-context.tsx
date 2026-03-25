@@ -729,7 +729,8 @@ interface LibraryContextType {
   pendingPlaylistItems: LibraryItemData[]
   pendingPlaylistClips: ClipData[]
   pendingPreviewClips: ClipData[]
-  setPendingPreviewClips: (clips: ClipData[]) => void
+  pendingPreviewName: string | null
+  setPendingPreviewClips: (clips: ClipData[], name?: string) => void
   recentPlaylists: RecentPlaylist[]
   addToPlaylist: (playlistId: string, clipIds: string[]) => void
   setSort: (columnId: string) => void
@@ -813,8 +814,15 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [pendingPlaylistItems, setPendingPlaylistItems] = useState<LibraryItemData[]>([])
   const [pendingPlaylistClips, setPendingPlaylistClips] = useState<ClipData[]>([])
   const [onPlaylistCreatedCallback, setOnPlaylistCreatedCallback] = useState<((createdId: string) => void) | null>(null)
-  const [pendingPreviewClips, setPendingPreviewClips] = useState<ClipData[]>([])
+  const [pendingPreviewClips, setPendingPreviewClipsState] = useState<ClipData[]>([])
+  const [pendingPreviewName, setPendingPreviewName] = useState<string | null>(null)
   const [recentPlaylists, setRecentPlaylists] = useState<RecentPlaylist[]>([])
+  
+  // Wrapper to set both clips and name
+  const setPendingPreviewClips = (clips: ClipData[], name?: string) => {
+    setPendingPreviewClipsState(clips)
+    setPendingPreviewName(name || null)
+  }
 
   // --- Segregated Data/Structure hooks ---
   const {
@@ -1631,6 +1639,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         pendingPlaylistItems,
         pendingPlaylistClips,
         pendingPreviewClips,
+        pendingPreviewName,
         setPendingPreviewClips,
         recentPlaylists,
         addToPlaylist,

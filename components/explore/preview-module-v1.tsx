@@ -38,6 +38,10 @@ interface PreviewModuleV1Props {
   team?: Team
   athlete?: Athlete & { id?: string }
   onClose: () => void
+  /** Callback when "View Full Profile" is clicked for an athlete - renders in module layout */
+  onFocusAthlete?: (athlete: Athlete & { id: string }) => void
+  /** Callback when "View Full Profile" is clicked for a team - renders in module layout */
+  onFocusTeam?: (team: Team) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -178,6 +182,8 @@ export function PreviewModuleV1({
   team, 
   athlete, 
   onClose,
+  onFocusAthlete,
+  onFocusTeam,
 }: PreviewModuleV1Props) {
   // Back history stack - items we can go back to
   const [backStack, setBackStack] = useState<BreadcrumbItem[]>([])
@@ -332,6 +338,7 @@ export function PreviewModuleV1({
             onClose={() => {}} // Handled by our header
             onNavigateToAthlete={handleNavigateToAthlete}
             onNavigateToGame={handleNavigateToGame}
+            onViewFullTeamProfile={onFocusTeam}
             hideHeader
           />
         )
@@ -341,6 +348,7 @@ export function PreviewModuleV1({
             athlete={currentPreview.data as Athlete & { id?: string }}
             onClose={() => {}} // Handled by our header
             onNavigateToTeam={handleNavigateToTeam}
+            onViewFullAthleteProfile={onFocusAthlete}
             hideHeader
           />
         )
