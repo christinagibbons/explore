@@ -1,7 +1,11 @@
 "use client"
 
 // Profile view component - displays athlete overview with collapsible module panels
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { useLibraryContext } from "@/lib/library-context"
+import { useBreadcrumbContext } from "@/lib/breadcrumb-context"
+import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 import { ProfileProvider, useProfileContext } from "@/components/profile/profile-context"
 import { ProfileToolbar } from "@/components/profile/profile-toolbar"
@@ -27,6 +31,10 @@ interface ProfileViewProps {
 }
 
 function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, onClickGame, onClose }: ProfileViewProps) {
+  const router = useRouter()
+  const { setPendingPreviewClips } = useLibraryContext()
+  const { pushAnchor } = useBreadcrumbContext()
+  
   const { 
     visibleModules, 
     modulePanelSize,
@@ -39,6 +47,11 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
   const [previewClip, setPreviewClip] = useState<PlayData | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [playlistPreview, setPlaylistPreview] = useState<{ title: string } | null>(null)
+  
+  // Get mock clips for the playlist preview
+  const playlistClips = useMemo(() => {
+    return MOCK_DATASETS[0]?.plays.slice(0, 8) || []
+  }, [])
   
   // Check if any module is visible
   const isModulePanelOpen = visibleModules.clips || visibleModules.games || visibleModules.reports
@@ -77,10 +90,58 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
   
   // Handle stat click - open a playlist preview
   const handleStatClick = (statLabel: string) => {
-    setPlaylistPreview({ title: `${statLabel} Clips` })
+    setPlaylistPreview({ title: statLabel })
     setPreviewTeam(null)
     setPreviewClip(null)
     setPreviewGame(null)
+  }
+  
+  // Handle view full playlist - navigate to watch with clips
+  const handleViewFullPlaylist = () => {
+    if (!playlistPreview) return
+    
+    // Convert PlayData to ClipData format for the library context
+    const clips = playlistClips.map((play) => ({
+      id: play.id,
+      playNumber: play.playNumber,
+      odk: play.odk,
+      quarter: play.quarter,
+      down: play.down,
+      distance: play.distance,
+      yardLine: play.yardLine,
+      hash: play.hash,
+      yards: play.yards,
+      result: play.result,
+      gainLoss: play.gainLoss,
+      defFront: play.defFront,
+      defStr: play.defStr,
+      coverage: play.coverage,
+      blitz: play.blitz,
+      game: play.game,
+      playType: play.playType,
+      passResult: play.passResult,
+      runDirection: play.runDirection,
+      personnelO: play.personnelO,
+      personnelD: play.personnelD,
+      isTouchdown: play.isTouchdown,
+      isFirstDown: play.isFirstDown,
+      isPenalty: play.isPenalty,
+      penaltyType: play.penaltyType,
+    }))
+    
+    // Push the playlist to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "playlist",
+      label: playlistPreview.title,
+      id: `playlist-${playlistPreview.title}`,
+    })
+    
+    // Set pending clips with the playlist name
+    setPendingPreviewClips(clips, playlistPreview.title)
+    
+    // Navigate to watch
+    router.push("/watch")
   }
 
   // Collapse/expand module panel based on visibility
@@ -170,9 +231,10 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
         <div className="w-[400px] shrink-0 py-3 pr-3 pl-3">
           {playlistPreview ? (
             <PlaylistPreview
-              title={playlistPreview.title}
+              title={`${playlistPreview.title} Clips`}
               athleteName={athlete.name}
               onClose={handleClosePreview}
+              onViewFullPlaylist={handleViewFullPlaylist}
             />
           ) : (
             <PreviewModuleV1

@@ -92,7 +92,7 @@ export function WatchProvider({
   consumeLibraryEvents?: boolean
 }) {
   const router = useRouter()
-  const { activeWatchItemId, activeWatchItems, folders, rootItems, getMediaItem, setWatchItem, mediaItems, pendingPreviewClips, setPendingPreviewClips } = useLibraryContext()
+  const { activeWatchItemId, activeWatchItems, folders, rootItems, getMediaItem, setWatchItem, mediaItems, pendingPreviewClips, pendingPreviewName, setPendingPreviewClips } = useLibraryContext()
 
   // Stable refs so useEffects don't re-fire when these change
   const foldersRef = useRef(folders)
@@ -396,9 +396,10 @@ export function WatchProvider({
       penaltyType: clip.penaltyType,
     }))
 
+    const playlistName = pendingPreviewClipsRef.current.length > 0 ? pendingPreviewName : null
     const unsavedTab: Dataset = {
       id: `unsaved-${Date.now()}`,
-      name: "Unsaved Playlist",
+      name: playlistName || "Unsaved Playlist",
       plays,
       isUnsaved: true,
     }
@@ -411,7 +412,7 @@ export function WatchProvider({
     }
     setVisibleModules((prev) => ({ ...prev, library: false }))
     // Clear pending so it doesn't re-trigger
-    setPendingPreviewClips([])
+    setPendingPreviewClips([], undefined)
   }, [setPendingPreviewClips])
 
   // Keep open playlist tabs in sync with the mediaItems store so that

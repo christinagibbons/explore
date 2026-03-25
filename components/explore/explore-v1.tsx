@@ -339,11 +339,8 @@ export function ExploreV1() {
             <ResizablePanelGroup direction="horizontal" className="h-full [&>div]:transition-all [&>div]:duration-300 [&>div]:ease-in-out">
               <ResizablePanel defaultSize={100} minSize={40} id="explore-main-v1" order={1}>
                 <div className={cn("h-full flex flex-col py-3", !previewPlay && !previewGame && !previewTeam && !previewAthlete && "pr-3")}>
-                  {/* Breadcrumbs + Tabs */}
+                  {/* Tabs header - no breadcrumbs on base explore page */}
                   <div className="px-3 pt-3 pb-2 bg-background rounded-t-lg">
-                    {/* Breadcrumbs */}
-                    <ExploreBreadcrumbs className="mb-2" />
-                    
                     {/* Tabs */}
                     <div className="flex items-center gap-2">
                     {exploreTabs.map((tab) => (
