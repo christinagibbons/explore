@@ -1,8 +1,6 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import Link from "next/link"
-
 import { Icon } from "@/components/icon"
 import { cn } from "@/lib/utils"
 import { nameToSlug } from "@/lib/athletes-data"
@@ -268,9 +266,6 @@ export function AthleteProfilePage({ athlete }: AthleteProfilePageProps) {
           )}>
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">
-              <Icon name="chevronLeft" className="w-5 h-5" />
-            </Link>
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground shrink-0">
               {athlete.name.split(" ").map((n) => n[0]).join("")}
             </div>

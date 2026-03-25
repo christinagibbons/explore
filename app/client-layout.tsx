@@ -49,14 +49,6 @@ function ClientLayoutInner({
           onShareClick={() => console.log("Share clicked")}
           onDownloadClick={() => console.log("Download clicked")}
           className="bg-sidebar border-b border-sidebar-border"
-          showBack={isWatchPage}
-          onBackClick={() => {
-            if (window.history.length > 1) {
-              router.back()
-            } else {
-              router.push("/library")
-            }
-          }}
           showFiltersToggle={isExplorePage}
         />
 

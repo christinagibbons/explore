@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useRef, useState, useEffect } from "react"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Icon } from "@/components/icon"
@@ -321,9 +320,6 @@ export function TeamProfilePage({ team }: TeamProfilePageProps) {
             <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/explore" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Icon name="chevronLeft" className="w-5 h-5" />
-              </Link>
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0"
                 style={{ backgroundColor: team.logoColor }}
