@@ -4,7 +4,22 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 
 type ProfileModule = "clips" | "games" | "reports"
 
+// Scope types for filtering profile data
+export type ScopeType = "current" | "career" | "custom"
+export type SeasonYear = "2025" | "2024" | "2023" | "2022" | "2021"
+
+export interface ProfileScope {
+  type: ScopeType
+  customSeasons?: SeasonYear[]
+}
+
+export const AVAILABLE_SEASONS: SeasonYear[] = ["2025", "2024", "2023", "2022", "2021"]
+
 interface ProfileContextType {
+  // Scope for filtering data
+  scope: ProfileScope
+  setScope: (scope: ProfileScope) => void
+  
   // Module visibility
   visibleModules: {
     clips: boolean
@@ -24,6 +39,8 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
+  const [scope, setScope] = useState<ProfileScope>({ type: "current" })
+  
   const [visibleModules, setVisibleModules] = useState({
     clips: false,
     games: false,
@@ -54,6 +71,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   return (
     <ProfileContext.Provider
       value={{
+        scope,
+        setScope,
         visibleModules,
         toggleModule,
         modulePanelSize,

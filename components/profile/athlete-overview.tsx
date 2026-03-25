@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { getTeamForAthlete } from "@/lib/mock-teams"
 import { TrendingUp, TrendingDown, Minus, ChevronRight } from "lucide-react"
+import { ScopeSelector } from "./scope-selector"
 import type { Athlete } from "@/types/athlete"
 import type { Team } from "@/lib/sports-data"
 
@@ -254,7 +255,7 @@ export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClic
             </div>
           </div>
 
-          {/* Quick Bio - hidden in compact mode */}
+          {/* Quick Bio and Scope - hidden in compact mode */}
           {!compact && (
             <div className="hidden md:flex items-center gap-6 text-sm">
               <div>
@@ -269,6 +270,8 @@ export function AthleteOverview({ athlete, onNavigateToTeam, onClickStat, onClic
                 <span className="text-muted-foreground">College</span>
                 <span className="ml-2 text-foreground font-medium">{athlete.college || "—"}</span>
               </div>
+              <div className="w-px h-6 bg-border mx-1" />
+              <ScopeSelector />
             </div>
           )}
         </div>
