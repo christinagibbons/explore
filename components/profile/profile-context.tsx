@@ -4,7 +4,21 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 
 type ProfileModule = "clips" | "games" | "reports"
 
+// Scope options for time horizon
+export type ProfileScope = "2025" | "2024" | "2023" | "career"
+
+export const SCOPE_OPTIONS: { value: ProfileScope; label: string }[] = [
+  { value: "2025", label: "2025 Season" },
+  { value: "2024", label: "2024 Season" },
+  { value: "2023", label: "2023 Season" },
+  { value: "career", label: "Career" },
+]
+
 interface ProfileContextType {
+  // Scope (time horizon)
+  scope: ProfileScope
+  setScope: (scope: ProfileScope) => void
+  
   // Module visibility
   visibleModules: {
     clips: boolean
@@ -24,6 +38,8 @@ interface ProfileContextType {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
+  const [scope, setScope] = useState<ProfileScope>("2025")
+  
   const [visibleModules, setVisibleModules] = useState({
     clips: false,
     games: false,
@@ -54,6 +70,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   return (
     <ProfileContext.Provider
       value={{
+        scope,
+        setScope,
         visibleModules,
         toggleModule,
         modulePanelSize,
@@ -72,4 +90,8 @@ export function useProfileContext() {
     throw new Error("useProfileContext must be used within a ProfileProvider")
   }
   return context
+}
+
+export function useProfileContextOptional() {
+  return useContext(ProfileContext)
 }

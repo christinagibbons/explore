@@ -2,6 +2,8 @@
 
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { ScopeSelector } from "./scope-selector"
+import { useProfileContextOptional, SCOPE_OPTIONS } from "./profile-context"
 import { getAthletesForTeam } from "@/lib/mock-teams"
 import { mockGames } from "@/lib/mock-games"
 import { findTeamById } from "@/lib/games-context"
@@ -68,6 +70,10 @@ interface TeamOverviewProps {
 }
 
 export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
+  const profileContext = useProfileContextOptional()
+  const scope = profileContext?.scope || "2025"
+  const scopeLabel = SCOPE_OPTIONS.find(opt => opt.value === scope)?.label || "2025 Season"
+  
   const identity = useMemo(() => generateTeamIdentity(team.id, team.name), [team.id, team.name])
   const stats = useMemo(() => generateTeamStats(team.id), [team.id])
   const teamAthletes = useMemo(() => getAthletesForTeam(team.id), [team.id])
@@ -136,9 +142,12 @@ export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
         >
           {team.abbreviation}
         </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground">{team.name}</h1>
-          <p className="text-sm text-muted-foreground">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">{team.name}</h1>
+            <ScopeSelector />
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
             {conferenceInfo.conference} {conferenceInfo.division} · {stats.record.wins}-{stats.record.losses}
           </p>
         </div>
@@ -171,8 +180,10 @@ export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
         {/* Key Stats */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Season Stats</h2>
-            <span className="text-xs text-muted-foreground">2025/26</span>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              {scope === "career" ? "All-Time Stats" : "Season Stats"}
+            </h2>
+            <span className="text-xs text-muted-foreground">{scopeLabel}</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {[
