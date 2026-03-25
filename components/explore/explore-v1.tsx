@@ -10,6 +10,7 @@ import { TeamsModule } from "@/components/teams-module"
 import { AthletesModule } from "@/components/athletes-module"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
 import { ProfileView } from "@/components/profile/profile-view"
+import { TeamProfileView } from "@/components/profile/team-profile-view"
 import { getAllUniqueClips } from "@/lib/mock-datasets"
 import { AddToPlaylistMenu } from "@/components/add-to-playlist-menu"
 import { useExploreFilters } from "@/hooks/use-explore-filters"
@@ -111,6 +112,7 @@ export function ExploreV1() {
   const [previewAthlete, setPreviewAthlete] = useState<(Athlete & { id: string }) | null>(null)
   // Focused entity state - when an entity becomes the main content (full profile view)
   const [focusedAthlete, setFocusedAthlete] = useState<(Athlete & { id: string }) | null>(null)
+  const [focusedTeam, setFocusedTeam] = useState<Team | null>(null)
   const { showFilters, setShowFilters, setActiveFilterCount } = useExploreContext()
   const { setCollectionAnchor, pushAnchor } = useBreadcrumbContext()
   const previewPanelRef = useRef<ImperativePanelHandle>(null)
@@ -207,6 +209,27 @@ export function ExploreV1() {
     setFocusedAthlete(null)
   }
 
+  // Handler for when a team becomes the focused entity (full profile in modules layout)
+  const handleFocusTeam = (team: Team) => {
+    setFocusedTeam(team)
+    setPreviewTeam(null)
+    setPreviewAthlete(null)
+    setPreviewPlay(null)
+    setPreviewGame(null)
+    // Push team to breadcrumbs
+    pushAnchor({
+      anchorType: "entity",
+      specificType: "team",
+      label: team.name,
+      id: team.id,
+    })
+  }
+
+  // Handler to go back from focused team to the list
+  const handleCloseFocusedTeam = () => {
+    setFocusedTeam(null)
+  }
+
   useEffect(() => {
     if (showFilters) {
       filterPanelRef.current?.expand()
@@ -248,6 +271,18 @@ export function ExploreV1() {
           athlete={focusedAthlete}
           onNavigateToTeam={handleTeamClick}
           onClose={handleCloseFocusedAthlete}
+        />
+      </div>
+    )
+  }
+
+  // If a team is focused, render the TeamProfileView which has its own toolbar + module system
+  if (focusedTeam) {
+    return (
+      <div className="h-full w-full bg-sidebar">
+        <TeamProfileView
+          team={focusedTeam}
+          onClose={handleCloseFocusedTeam}
         />
       </div>
     )
@@ -410,6 +445,7 @@ export function ExploreV1() {
                       athlete={previewAthlete || undefined}
                       onClose={handleClosePreview}
                       onFocusAthlete={handleFocusAthlete}
+                      onFocusTeam={handleFocusTeam}
                     />
                   )}
                 </div>

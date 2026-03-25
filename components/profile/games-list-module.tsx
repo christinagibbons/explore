@@ -1,12 +1,16 @@
 "use client"
 
+import { useMemo } from "react"
 import { cn } from "@/lib/utils"
-import { ChevronRight, Trophy, TrendingUp, TrendingDown } from "lucide-react"
+import { ChevronRight } from "lucide-react"
+import { mockGames } from "@/lib/mock-games"
+import { findTeamById } from "@/lib/games-context"
 import type { Athlete } from "@/types/athlete"
-import type { Game } from "@/lib/sports-data"
+import type { Team, Game } from "@/lib/sports-data"
 
 interface GamesListModuleProps {
-  athlete: Athlete & { id: string }
+  athlete?: Athlete & { id: string }
+  team?: Team
   onClickGame?: (game: Game) => void
 }
 
@@ -80,9 +84,40 @@ const MOCK_ATHLETE_GAMES = [
   },
 ]
 
-export function GamesListModule({ athlete, onClickGame }: GamesListModuleProps) {
-  const wins = MOCK_ATHLETE_GAMES.filter(g => g.result === "W").length
-  const losses = MOCK_ATHLETE_GAMES.filter(g => g.result === "L").length
+export function GamesListModule({ athlete, team, onClickGame }: GamesListModuleProps) {
+  // If team is provided, fetch real games for that team
+  const teamGames = useMemo(() => {
+    if (!team) return null
+    return mockGames
+      .filter((g) => g.homeTeamId === team.id || g.awayTeamId === team.id)
+      .filter((g) => g.status === "final" && g.score)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+      .map((game) => {
+        const isHome = game.homeTeamId === team.id
+        const teamScore = isHome ? game.score!.home : game.score!.away
+        const opponentScore = isHome ? game.score!.away : game.score!.home
+        const opponentId = isHome ? game.awayTeamId : game.homeTeamId
+        const opponent = findTeamById(opponentId)
+        const won = teamScore > opponentScore
+        return {
+          id: game.id,
+          week: game.week,
+          opponent: opponent?.name || "Unknown",
+          opponentAbbr: opponent?.abbreviation || "UNK",
+          opponentColor: opponent?.logoColor || "#666",
+          home: isHome,
+          result: won ? "W" : "L",
+          score: `${teamScore}-${opponentScore}`,
+          date: new Date(game.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+          game,
+        }
+      })
+  }, [team])
+
+  const games = teamGames || MOCK_ATHLETE_GAMES
+  const wins = games.filter(g => g.result === "W").length
+  const losses = games.filter(g => g.result === "L").length
 
   return (
     <div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
@@ -101,17 +136,25 @@ export function GamesListModule({ athlete, onClickGame }: GamesListModuleProps) 
             {MOCK_ATHLETE_GAMES.map((game) => (
               <button
                 key={game.id}
-                onClick={() => onClickGame?.({ 
-                  id: game.id, 
-                  homeTeam: game.home ? athlete.team : game.opponent,
-                  awayTeam: game.home ? game.opponent : athlete.team,
-                  date: game.date,
-                  time: "1:00 PM",
-                  league: athlete.league,
-                  status: "final" as const,
-                  homeScore: game.home ? parseInt(game.score.split("-")[0]) : parseInt(game.score.split("-")[1]),
-                  awayScore: game.home ? parseInt(game.score.split("-")[1]) : parseInt(game.score.split("-")[0]),
-                })}
+                onClick={() => {
+                  if ('game' in game && game.game) {
+                    // Team game - use actual game object
+                    onClickGame?.(game.game)
+                  } else if (athlete) {
+                    // Athlete mock game - construct game object
+                    onClickGame?.({ 
+                      id: game.id, 
+                      homeTeam: game.home ? athlete.team : game.opponent,
+                      awayTeam: game.home ? game.opponent : athlete.team,
+                      date: game.date,
+                      time: "1:00 PM",
+                      league: athlete.league,
+                      status: "final" as const,
+                      homeScore: game.home ? parseInt(game.score.split("-")[0]) : parseInt(game.score.split("-")[1]),
+                      awayScore: game.home ? parseInt(game.score.split("-")[1]) : parseInt(game.score.split("-")[0]),
+                    })
+                  }
+                }}
                 className="w-full flex items-center gap-3 p-3 rounded-md hover:bg-muted/50 transition-colors text-left group"
               >
                 {/* Week & Result */}

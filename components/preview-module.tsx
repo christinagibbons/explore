@@ -1666,6 +1666,7 @@ interface TeamPreviewProps {
   onClose: () => void
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
   onNavigateToGame?: (game: Game) => void
+  onViewFullProfile?: (team: Team) => void
   hideHeader?: boolean
 }
 
@@ -1741,7 +1742,7 @@ function generateTeamStats(teamId: string) {
   }
 }
 
-function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hideHeader }: TeamPreviewProps) {
+function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, onViewFullProfile, hideHeader }: TeamPreviewProps) {
   const router = useRouter()
 
   // Get team stats (deterministic mock data)
@@ -2012,7 +2013,13 @@ function TeamPreview({ team, onClose, onNavigateToAthlete, onNavigateToGame, hid
         </Button>
         <Button
           className="flex-1 font-semibold"
-          onClick={() => router.push(`/teams/${team.id}`)}
+          onClick={() => {
+            if (onViewFullProfile) {
+              onViewFullProfile(team)
+            } else {
+              router.push(`/teams/${team.id}`)
+            }
+          }}
         >
           View Full Profile
         </Button>
@@ -2112,11 +2119,13 @@ interface PreviewModuleProps {
   onNavigateToAthlete?: (athlete: Athlete & { id?: string }) => void
   onNavigateToGame?: (game: Game) => void
   onNavigateToClip?: (play: PlayData) => void
-  // Callback for "View Full Profile" - if provided, called instead of router.push
+// Callback for "View Full Profile" - if provided, called instead of router.push
   onViewFullAthleteProfile?: (athlete: Athlete & { id: string }) => void
+  // Callback for "View Full Profile" for teams
+  onViewFullTeamProfile?: (team: Team) => void
   // Hide the internal header (used when wrapped by breadcrumb navigation)
   hideHeader?: boolean
-}
+  }
 
 export function PreviewModule({ 
   play, 
@@ -2129,6 +2138,7 @@ export function PreviewModule({
   onNavigateToGame,
   onNavigateToClip,
   onViewFullAthleteProfile,
+  onViewFullTeamProfile,
   hideHeader,
 }: PreviewModuleProps) {
   // If athlete is provided, render AthletePreview
@@ -2138,7 +2148,7 @@ export function PreviewModule({
 
   // If team is provided, render TeamPreview
   if (team) {
-    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} onNavigateToGame={onNavigateToGame} hideHeader={hideHeader} />
+    return <TeamPreview team={team} onClose={onClose} onNavigateToAthlete={onNavigateToAthlete} onNavigateToGame={onNavigateToGame} onViewFullProfile={onViewFullTeamProfile} hideHeader={hideHeader} />
   }
 
 // If game is provided, render GamePreview
