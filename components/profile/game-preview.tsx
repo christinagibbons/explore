@@ -135,7 +135,7 @@ export function GamePreview({ game, athleteName, onClose, onWatchFullGame }: Gam
               {/* Clip info */}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-foreground truncate">
-                  {clip.title}
+                  {clip.playType} - {clip.result}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                   Q{clip.quarter} · {clip.down}&{clip.distance}

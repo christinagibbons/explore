@@ -47,8 +47,6 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
   // Check if athlete has multiple teams
   const hasMultipleTeams = allTeams.length > 1
   
-  console.log("[v0] TeamScopeSelector - athlete:", athlete.name, "teamHistory:", athlete.teamHistory, "hasMultipleTeams:", hasMultipleTeams, "allTeams:", allTeams)
-  
   // Find team from breadcrumb navigation (if user came through a team)
   const teamFromBreadcrumb = useMemo(() => {
     // Look for a team anchor in the breadcrumb trail
@@ -72,9 +70,13 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
     }
   }, [hasMultipleTeams, selectedTeam, teamFromBreadcrumb, onSelectTeam])
   
-  // Don't show selector for single-team athletes
+  // For single-team athletes, show static team label without dropdown
   if (!hasMultipleTeams) {
-    return null
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-muted/50 border border-border/50">
+        <span className="text-foreground font-medium">{getTeamName(athlete.team)}</span>
+      </div>
+    )
   }
   
   // Get display label
