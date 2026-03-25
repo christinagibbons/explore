@@ -294,6 +294,7 @@ export function ExploreV1() {
         <TeamProfileView
           team={focusedTeam}
           onClose={handleCloseFocusedTeam}
+          onNavigateToTeam={handleFocusTeam}
         />
       </div>
     )

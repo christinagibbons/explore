@@ -86,9 +86,10 @@ function TeamToolbar({ visibleModules, toggleModule }: {
 interface TeamProfileViewProps {
   team: Team
   onClose?: () => void
+  onNavigateToTeam?: (team: Team) => void
 }
 
-function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
+function TeamProfileContent({ team, onClose, onNavigateToTeam }: TeamProfileViewProps) {
   // Local state for team-specific modules
   const [visibleModules, setVisibleModules] = useState({
     roster: false,
@@ -158,9 +159,10 @@ function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
     }
   }, [isModulePanelOpen])
 
-  const handleBreadcrumbNavigate = () => {
-    if (onClose) {
-      onClose()
+  const handleBreadcrumbNavigate = (anchor: { specificType: string; id?: string }) => {
+    // For collection breadcrumbs, close the profile
+    if (anchor.specificType === "athletes" || anchor.specificType === "teams") {
+      onClose?.()
     }
   }
 
@@ -192,6 +194,7 @@ function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
                 <TeamOverview 
                   team={team} 
                   onNavigateToAthlete={handleAthleteClick}
+                  onNavigateToTeam={onNavigateToTeam}
                 />
               </div>
             </div>
@@ -256,10 +259,10 @@ function TeamProfileContent({ team, onClose }: TeamProfileViewProps) {
   )
 }
 
-export function TeamProfileView(props: TeamProfileViewProps) {
+export function TeamProfileView({ team, onClose, onNavigateToTeam }: TeamProfileViewProps) {
   return (
     <ProfileProvider>
-      <TeamProfileContent {...props} />
+      <TeamProfileContent team={team} onClose={onClose} onNavigateToTeam={onNavigateToTeam} />
     </ProfileProvider>
   )
 }

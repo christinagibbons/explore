@@ -21,6 +21,7 @@ import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 import type { Athlete } from "@/types/athlete"
+import { getTeamById } from "@/lib/games-context"
 import type { Team, Game } from "@/lib/sports-data"
 import type { PlayData } from "@/lib/play-data"
 
@@ -231,9 +232,18 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
     }
   }, [isModulePanelOpen])
 
-  const handleBreadcrumbNavigate = () => {
-    if (onClose) {
-      onClose()
+  const handleBreadcrumbNavigate = (anchor: { specificType: string; id?: string }) => {
+    // If clicking on a team breadcrumb, navigate to that team
+    if (anchor.specificType === "team" && anchor.id && onFocusTeam) {
+      const team = getTeamById(anchor.id)
+      if (team) {
+        onFocusTeam(team)
+        return
+      }
+    }
+    // For collection breadcrumbs, close the profile
+    if (anchor.specificType === "athletes" || anchor.specificType === "teams") {
+      onClose?.()
     }
   }
 

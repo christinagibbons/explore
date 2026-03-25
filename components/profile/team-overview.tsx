@@ -65,9 +65,10 @@ function generateTeamStats(teamId: string) {
 interface TeamOverviewProps {
   team: Team
   onNavigateToAthlete?: (athlete: Athlete & { id: string }) => void
+  onNavigateToTeam?: (team: Team) => void
 }
 
-export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
+export function TeamOverview({ team, onNavigateToAthlete, onNavigateToTeam }: TeamOverviewProps) {
   const identity = useMemo(() => generateTeamIdentity(team.id, team.name), [team.id, team.name])
   const stats = useMemo(() => generateTeamStats(team.id), [team.id])
   const teamAthletes = useMemo(() => getAthletesForTeam(team.id), [team.id])
@@ -120,6 +121,7 @@ export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
           opponent: opponent?.name || "Unknown",
           opponentAbbr: opponent?.abbreviation || "UNK",
           opponentColor: opponent?.logoColor || "#666",
+          opponentTeam: opponent || null,
           won,
           score: `${teamScore}-${opponentScore}`,
         }
@@ -238,14 +240,29 @@ export function TeamOverview({ team, onNavigateToAthlete }: TeamOverviewProps) {
                 <div className="w-8 text-xs text-muted-foreground text-center shrink-0">
                   {game.week}
                 </div>
-                <div 
-                  className="w-8 h-8 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                <button
+                  onClick={() => game.opponentTeam && onNavigateToTeam?.(game.opponentTeam)}
+                  disabled={!game.opponentTeam || !onNavigateToTeam}
+                  className={cn(
+                    "w-8 h-8 rounded flex items-center justify-center text-white text-[10px] font-bold shrink-0 transition-transform",
+                    game.opponentTeam && onNavigateToTeam && "hover:scale-110 cursor-pointer"
+                  )}
                   style={{ backgroundColor: game.opponentColor }}
+                  title={game.opponentTeam ? `View ${game.opponent}` : undefined}
                 >
                   {game.opponentAbbr}
-                </div>
+                </button>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">vs {game.opponent}</p>
+                  {game.opponentTeam && onNavigateToTeam ? (
+                    <button
+                      onClick={() => onNavigateToTeam(game.opponentTeam!)}
+                      className="text-sm text-foreground truncate hover:text-primary hover:underline text-left"
+                    >
+                      vs {game.opponent}
+                    </button>
+                  ) : (
+                    <p className="text-sm text-foreground truncate">vs {game.opponent}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">{game.date}</p>
                 </div>
                 <div className={cn(

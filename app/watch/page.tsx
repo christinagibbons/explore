@@ -14,9 +14,18 @@ import { useBreadcrumbContextOptional } from "@/lib/breadcrumb-context"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 function WatchContent() {
-  const { visibleModules, reportsPanelSize, setReportsPanelSize } = useWatchContext()
+  const { visibleModules, reportsPanelSize, setReportsPanelSize, toggleModule } = useWatchContext()
   const breadcrumbContext = useBreadcrumbContextOptional()
   const hasBreadcrumbs = breadcrumbContext && breadcrumbContext.breadcrumbs.length > 0
+  
+  // Hide library when coming from explore (indicated by breadcrumbs existing)
+  const hasHiddenLibraryRef = useRef(false)
+  useEffect(() => {
+    if (hasBreadcrumbs && visibleModules.library && !hasHiddenLibraryRef.current) {
+      toggleModule("library")
+      hasHiddenLibraryRef.current = true
+    }
+  }, [hasBreadcrumbs, visibleModules.library, toggleModule])
 
   const topPanelRef = useRef<ImperativePanelHandle>(null)
   const libraryPanelRef = useRef<ImperativePanelHandle>(null)
