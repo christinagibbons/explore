@@ -15,7 +15,7 @@ interface PlaylistPreviewProps {
   onViewFullPlaylist?: () => void
 }
 
-export function PlaylistPreview({ title, athleteName, onClickClip, onViewFullPlaylist }: PlaylistPreviewProps) {
+export function PlaylistPreview({ title, athleteName, onClose, onClickClip, onViewFullPlaylist }: PlaylistPreviewProps) {
   const [currentClipIndex, setCurrentClipIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   
@@ -43,13 +43,24 @@ export function PlaylistPreview({ title, athleteName, onClickClip, onViewFullPla
     <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
           {athleteName && (
-            <p className="text-xs text-muted-foreground">{athleteName}</p>
+            <p className="text-xs text-muted-foreground">{athleteName} · {clips.length} clips</p>
+          )}
+          {!athleteName && (
+            <p className="text-xs text-muted-foreground">{clips.length} clips</p>
           )}
         </div>
-        <span className="text-xs text-muted-foreground shrink-0">{clips.length} clips</span>
+        <button
+          onClick={onClose}
+          className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0 ml-2"
+          aria-label="Close preview"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       </div>
       
       {/* Video Player Area */}
