@@ -13,7 +13,7 @@
  */
 
 import { useRouter } from "next/navigation"
-import { ChevronRight, Home } from "lucide-react"
+import { Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useBreadcrumbContextOptional, type BreadcrumbAnchor } from "@/lib/breadcrumb-context"
 
@@ -61,7 +61,7 @@ export function ExploreBreadcrumbs({ className, onNavigate }: ExploreBreadcrumbs
           <div key={`${anchor.specificType}-${anchor.id || index}`} className="flex items-center gap-1">
             {/* Separator (not before first item) */}
             {!isFirst && (
-              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+              <span className="text-muted-foreground/60 shrink-0">/</span>
             )}
 
             {/* Breadcrumb item */}

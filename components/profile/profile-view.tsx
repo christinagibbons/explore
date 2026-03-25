@@ -20,12 +20,13 @@ import type { PlayData } from "@/lib/play-data"
 interface ProfileViewProps {
   athlete: Athlete & { id: string }
   onNavigateToTeam?: (team: Team) => void
+  onFocusTeam?: (team: Team) => void
   onClickClip?: (play: PlayData) => void
   onClickGame?: (game: Game) => void
   onClose?: () => void
 }
 
-function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, onClose }: ProfileViewProps) {
+function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, onClickGame, onClose }: ProfileViewProps) {
   const { 
     visibleModules, 
     modulePanelSize,
@@ -179,6 +180,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onClickClip, onClickGame, o
               play={previewClip || undefined}
               game={previewGame || undefined}
               onClose={handleClosePreview}
+              onFocusTeam={onFocusTeam}
             />
           )}
         </div>

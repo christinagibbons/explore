@@ -31,10 +31,11 @@ import { useBreadcrumbContext, type CollectionType } from "@/lib/breadcrumb-cont
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 
 const exploreTabs = [
-  { value: "clips", label: "Clips" },
-  { value: "games", label: "Games" },
+  { value: "competitions", label: "Competitions" },
   { value: "teams", label: "Teams" },
   { value: "athletes", label: "Athletes" },
+  { value: "games", label: "Games" },
+  { value: "clips", label: "Clips" },
 ] as const
 
 type ExploreTab = (typeof exploreTabs)[number]["value"]
@@ -191,6 +192,7 @@ export function ExploreV1() {
   // Handler for when an athlete becomes the focused entity (full profile in modules layout)
   const handleFocusAthlete = (athlete: Athlete & { id: string }) => {
     setFocusedAthlete(athlete)
+    setFocusedTeam(null) // Clear team focus when switching to athlete
     setPreviewAthlete(null)
     setPreviewPlay(null)
     setPreviewGame(null)
@@ -212,6 +214,7 @@ export function ExploreV1() {
   // Handler for when a team becomes the focused entity (full profile in modules layout)
   const handleFocusTeam = (team: Team) => {
     setFocusedTeam(team)
+    setFocusedAthlete(null) // Clear athlete focus when switching to team
     setPreviewTeam(null)
     setPreviewAthlete(null)
     setPreviewPlay(null)
@@ -270,6 +273,7 @@ export function ExploreV1() {
         <ProfileView
           athlete={focusedAthlete}
           onNavigateToTeam={handleTeamClick}
+          onFocusTeam={handleFocusTeam}
           onClose={handleCloseFocusedAthlete}
         />
       </div>
@@ -360,7 +364,14 @@ export function ExploreV1() {
                   </div>
 
                   {/* Tab content - only show when not focused on entity */}
-                  {activeTab === "clips" ? (
+                  {activeTab === "competitions" ? (
+                    <div className="flex-1 bg-background rounded-b-lg overflow-hidden">
+                      <div className="p-6 text-center text-muted-foreground">
+                        <p className="text-sm">Competitions module coming soon.</p>
+                        <p className="text-xs mt-1">Browse leagues, tournaments, and seasonal competitions.</p>
+                      </div>
+                    </div>
+                  ) : activeTab === "clips" ? (
                     <div className="flex-1 bg-background rounded-b-lg overflow-hidden relative">
                       <GridModule
                         showTabs={false}
