@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Play, Pause, Check } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { MOCK_DATASETS } from "@/lib/mock-datasets"
 import type { PlayData } from "@/lib/play-data"
 
@@ -11,9 +12,10 @@ interface PlaylistPreviewProps {
   athleteName?: string
   onClose?: () => void
   onClickClip?: (clip: PlayData) => void
+  onViewFullPlaylist?: () => void
 }
 
-export function PlaylistPreview({ title, athleteName, onClickClip }: PlaylistPreviewProps) {
+export function PlaylistPreview({ title, athleteName, onClickClip, onViewFullPlaylist }: PlaylistPreviewProps) {
   const [currentClipIndex, setCurrentClipIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   
@@ -38,7 +40,7 @@ export function PlaylistPreview({ title, athleteName, onClickClip }: PlaylistPre
   if (!currentClip) return null
 
   return (
-    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden">
+    <div className="h-full flex flex-col bg-background rounded-lg overflow-hidden relative">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
         <div className="min-w-0">
@@ -79,7 +81,7 @@ export function PlaylistPreview({ title, athleteName, onClickClip }: PlaylistPre
       </div>
       
       {/* Playlist clips list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-20">
         <div className="p-2">
           {clips.map((clip, index) => {
             const isActive = index === currentClipIndex
@@ -134,6 +136,25 @@ export function PlaylistPreview({ title, athleteName, onClickClip }: PlaylistPre
             )
           })}
         </div>
+      </div>
+
+      {/* Fixed Footer Actions */}
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/50 px-4 py-3 flex items-center gap-2 shrink-0">
+        <Button
+          variant="outline"
+          className="flex-1 font-semibold"
+          onClick={() => {
+            console.log("Add to playlist:", title)
+          }}
+        >
+          Add to Playlist
+        </Button>
+        <Button
+          className="flex-1 font-semibold"
+          onClick={onViewFullPlaylist}
+        >
+          View Full Playlist
+        </Button>
       </div>
     </div>
   )
