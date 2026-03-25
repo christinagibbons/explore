@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ChevronDown, Check } from "lucide-react"
+import { ChevronDown, Check, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useBreadcrumbContext } from "@/lib/breadcrumb-context"
 import { sportsData } from "@/lib/sports-data"
@@ -83,14 +83,15 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
-          "bg-muted/50 hover:bg-muted border border-border/50 cursor-pointer",
-          isOpen && "bg-muted"
+          "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+          "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground",
+          isOpen && "bg-muted text-foreground"
         )}
       >
-        <span className="text-foreground font-medium">{displayLabel}</span>
+        <Users className="w-3.5 h-3.5" />
+        <span>{displayLabel}</span>
         <ChevronDown className={cn(
-          "w-3.5 h-3.5 text-muted-foreground transition-transform",
+          "w-3.5 h-3.5 transition-transform",
           isOpen && "rotate-180"
         )} />
       </button>
@@ -104,7 +105,7 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
           />
           
           {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 z-50 w-56 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute top-full right-0 mt-1 z-50 min-w-[180px] bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
             {hasMultipleTeams && (
               <>
                 {/* All Teams option - only for multi-team athletes */}
