@@ -274,7 +274,7 @@ export function GamesModule({
     })
 
     return result
-  }, [selectedLeagues, selectedSeason, searchQuery])
+  }, [selectedLeagues, selectedSeason])
 
   // Count total games
   const totalGames = organizedGames.reduce(

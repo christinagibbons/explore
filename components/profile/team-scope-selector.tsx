@@ -70,38 +70,32 @@ export function TeamScopeSelector({ athlete, selectedTeam, onSelectTeam }: TeamS
     }
   }, [hasMultipleTeams, selectedTeam, teamFromBreadcrumb, onSelectTeam])
   
-  // For single-team athletes, show static team label without dropdown
-  if (!hasMultipleTeams) {
-    return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-muted/50 border border-border/50">
-        <span className="text-foreground font-medium">{getTeamName(athlete.team)}</span>
-      </div>
-    )
-  }
-  
   // Get display label
-  const displayLabel = selectedTeam 
-    ? getTeamName(selectedTeam)
-    : "All Teams"
+  const displayLabel = hasMultipleTeams
+    ? (selectedTeam ? getTeamName(selectedTeam) : "All Teams")
+    : getTeamName(athlete.team)
   
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => hasMultipleTeams && setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors",
-          "bg-muted/50 hover:bg-muted border border-border/50",
+          "bg-muted/50 border border-border/50",
+          hasMultipleTeams ? "hover:bg-muted cursor-pointer" : "cursor-default",
           isOpen && "bg-muted"
         )}
       >
         <span className="text-foreground font-medium">{displayLabel}</span>
-        <ChevronDown className={cn(
-          "w-3.5 h-3.5 text-muted-foreground transition-transform",
-          isOpen && "rotate-180"
-        )} />
+        {hasMultipleTeams && (
+          <ChevronDown className={cn(
+            "w-3.5 h-3.5 text-muted-foreground transition-transform",
+            isOpen && "rotate-180"
+          )} />
+        )}
       </button>
       
-      {isOpen && (
+      {isOpen && hasMultipleTeams && (
         <>
           {/* Backdrop */}
           <div 
