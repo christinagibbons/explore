@@ -78,7 +78,7 @@ export function AthletesModule({
     })
 
     return result
-  }, [selectedLeagues, searchQuery, sortField, sortDirection])
+  }, [selectedLeagues, sortField, sortDirection])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
