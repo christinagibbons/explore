@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, ChevronDown, ChevronRight } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { sportsData, type League, type Team, type Conference } from "@/lib/sports-data"
 import type { GameLeague } from "@/types/game"
@@ -72,30 +71,20 @@ function TeamTile({
 // ---------------------------------------------------------------------------
 function DivisionSection({ 
   division, 
-  searchQuery,
   onClickTeam,
   activeTeamId,
 }: { 
   division: Conference
-  searchQuery: string
   onClickTeam?: (team: Team) => void
   activeTeamId?: string
 }) {
-  const filteredTeams = division.teams.filter(
-    (team) =>
-      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.abbreviation.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  if (filteredTeams.length === 0) return null
-
   return (
     <div className="space-y-2">
       <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
         {division.name}
       </h5>
       <div className="grid grid-cols-4 gap-2">
-        {filteredTeams.map((team) => (
+        {division.teams.map((team) => (
           <TeamTile 
             key={team.id} 
             team={team} 
@@ -113,13 +102,11 @@ function DivisionSection({
 // ---------------------------------------------------------------------------
 function ConferenceSection({
   conference,
-  searchQuery,
   defaultExpanded = true,
   onClickTeam,
   activeTeamId,
 }: {
   conference: Conference
-  searchQuery: string
   defaultExpanded?: boolean
   onClickTeam?: (team: Team) => void
   activeTeamId?: string
@@ -133,37 +120,6 @@ function ConferenceSection({
     }
     return conference.teams.length
   }, [conference])
-
-  // Filter teams based on search
-  const hasMatchingTeams = useMemo(() => {
-    if (!searchQuery) return true
-    
-    const query = searchQuery.toLowerCase()
-    
-    if (conference.subdivisions && conference.subdivisions.length > 0) {
-      return conference.subdivisions.some((sub) =>
-        sub.teams.some(
-          (team) =>
-            team.name.toLowerCase().includes(query) ||
-            team.abbreviation.toLowerCase().includes(query)
-        )
-      )
-    }
-    
-    return conference.teams.some(
-      (team) =>
-        team.name.toLowerCase().includes(query) ||
-        team.abbreviation.toLowerCase().includes(query)
-    )
-  }, [conference, searchQuery])
-
-  if (!hasMatchingTeams) return null
-
-  const filteredDirectTeams = conference.teams.filter(
-    (team) =>
-      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      team.abbreviation.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   return (
     <div className="space-y-3">
@@ -190,16 +146,15 @@ function ConferenceSection({
               <DivisionSection
                 key={subdivision.id}
                 division={subdivision}
-                searchQuery={searchQuery}
                 onClickTeam={onClickTeam}
                 activeTeamId={activeTeamId}
               />
             ))
           ) : (
             /* Render teams directly (College/HS pattern) */
-            filteredDirectTeams.length > 0 && (
+            conference.teams.length > 0 && (
               <div className="grid grid-cols-4 gap-2">
-                {filteredDirectTeams.map((team) => (
+                {conference.teams.map((team) => (
                   <TeamTile 
                     key={team.id} 
                     team={team} 
@@ -222,13 +177,11 @@ function ConferenceSection({
 function LeagueSection({
   league,
   conferences,
-  searchQuery,
   onClickTeam,
   activeTeamId,
 }: {
   league: League
   conferences: Conference[]
-  searchQuery: string
   onClickTeam?: (team: Team) => void
   activeTeamId?: string
 }) {
@@ -242,32 +195,6 @@ function LeagueSection({
     }, 0)
   }, [conferences])
 
-  // Check if any teams match the search
-  const hasMatchingTeams = useMemo(() => {
-    if (!searchQuery) return true
-    
-    const query = searchQuery.toLowerCase()
-    
-    return conferences.some((conf) => {
-      if (conf.subdivisions && conf.subdivisions.length > 0) {
-        return conf.subdivisions.some((sub) =>
-          sub.teams.some(
-            (team) =>
-              team.name.toLowerCase().includes(query) ||
-              team.abbreviation.toLowerCase().includes(query)
-          )
-        )
-      }
-      return conf.teams.some(
-        (team) =>
-          team.name.toLowerCase().includes(query) ||
-          team.abbreviation.toLowerCase().includes(query)
-      )
-    })
-  }, [conferences, searchQuery])
-
-  if (!hasMatchingTeams) return null
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -279,7 +206,6 @@ function LeagueSection({
           <ConferenceSection
             key={conference.id}
             conference={conference}
-            searchQuery={searchQuery}
             onClickTeam={onClickTeam}
             activeTeamId={activeTeamId}
           />
@@ -293,8 +219,6 @@ function LeagueSection({
 // Main TeamsModule Component
 // ---------------------------------------------------------------------------
 export function TeamsModule({ selectedLeagues, selectedSeason, onClickTeam, activeTeamId }: TeamsModuleProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-
   // Get leagues to display based on filter
   const leaguesToShow = useMemo(() => {
     if (selectedLeagues.length === 0) {
@@ -319,62 +243,12 @@ export function TeamsModule({ selectedLeagues, selectedSeason, onClickTeam, acti
     }, 0)
   }, [leaguesToShow])
 
-  // Count filtered teams for footer
-  const filteredTeamCount = useMemo(() => {
-    if (!searchQuery) return totalTeams
-    
-    const query = searchQuery.toLowerCase()
-    return leaguesToShow.reduce((sum, league) => {
-      const data = sportsData[league]
-      return (
-        sum +
-        data.conferences.reduce((confSum, conf) => {
-          if (conf.subdivisions && conf.subdivisions.length > 0) {
-            return (
-              confSum +
-              conf.subdivisions.reduce(
-                (subSum, sub) =>
-                  subSum +
-                  sub.teams.filter(
-                    (team) =>
-                      team.name.toLowerCase().includes(query) ||
-                      team.abbreviation.toLowerCase().includes(query)
-                  ).length,
-                0
-              )
-            )
-          }
-          return (
-            confSum +
-            conf.teams.filter(
-              (team) =>
-                team.name.toLowerCase().includes(query) ||
-                team.abbreviation.toLowerCase().includes(query)
-            ).length
-          )
-        }, 0)
-      )
-    }, 0)
-  }, [leaguesToShow, searchQuery, totalTeams])
-
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Header with count and search */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">All Teams</span>
-          <span className="text-sm text-muted-foreground">({totalTeams})</span>
-        </div>
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search teams..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 h-9 bg-muted/50 border-border/50 text-sm"
-          />
-        </div>
+      {/* Header with count */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border shrink-0">
+        <span className="text-sm font-semibold text-foreground">All Teams</span>
+        <span className="text-sm text-muted-foreground">({totalTeams})</span>
       </div>
 
       {/* Teams List */}
@@ -385,7 +259,6 @@ export function TeamsModule({ selectedLeagues, selectedSeason, onClickTeam, acti
               key={league}
               league={league}
               conferences={sportsData[league].conferences}
-              searchQuery={searchQuery}
               onClickTeam={onClickTeam}
               activeTeamId={activeTeamId}
             />
@@ -395,7 +268,7 @@ export function TeamsModule({ selectedLeagues, selectedSeason, onClickTeam, acti
 
       {/* Footer */}
       <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground shrink-0">
-        Showing {filteredTeamCount} teams across {leaguesToShow.length} league{leaguesToShow.length !== 1 ? "s" : ""}
+        Showing {totalTeams} teams across {leaguesToShow.length} league{leaguesToShow.length !== 1 ? "s" : ""}
       </div>
     </div>
   )

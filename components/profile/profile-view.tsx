@@ -15,6 +15,7 @@ import { ClipsListModule } from "@/components/profile/clips-list-module"
 import { GamesListModule } from "@/components/profile/games-list-module"
 import { PlaylistPreview } from "@/components/profile/playlist-preview"
 import { ScopeSelector } from "@/components/profile/scope-selector"
+import { TeamScopeSelector } from "@/components/profile/team-scope-selector"
 import { GamePreview } from "@/components/profile/game-preview"
 import { ExploreBreadcrumbs } from "@/components/explore/explore-breadcrumbs"
 import { PreviewModuleV1 } from "@/components/explore/preview-module-v1"
@@ -49,6 +50,7 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
   const [previewClip, setPreviewClip] = useState<PlayData | null>(null)
   const [previewGame, setPreviewGame] = useState<Game | null>(null)
   const [playlistPreview, setPlaylistPreview] = useState<{ title: string } | null>(null)
+  const [selectedTeamScope, setSelectedTeamScope] = useState<string | null>(null)
   const [gamePerformancePreview, setGamePerformancePreview] = useState<{
     week: string
     opponent: string
@@ -251,11 +253,20 @@ function ProfileContent({ athlete, onNavigateToTeam, onFocusTeam, onClickClip, o
             order={1}
           >
             <div className="h-full overflow-hidden bg-background rounded-lg flex flex-col">
-              {/* Breadcrumbs with Scope Selector */}
+              {/* Breadcrumbs with Scope Selectors */}
               <div className="px-4 pt-3 pb-2 border-b border-border shrink-0">
                 <ExploreBreadcrumbs 
                   onNavigate={handleBreadcrumbNavigate} 
-                  actions={<ScopeSelector />}
+                  actions={
+                    <div className="flex items-center gap-2">
+                      <TeamScopeSelector 
+                        athlete={athlete}
+                        selectedTeam={selectedTeamScope}
+                        onSelectTeam={setSelectedTeamScope}
+                      />
+                      <ScopeSelector />
+                    </div>
+                  }
                 />
               </div>
               {/* Overview Content */}
